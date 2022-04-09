@@ -20,7 +20,6 @@ https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-stat
     dazu: wie viele wörte/Bilder
     Tasks auch bold machen wenn Taskjs gibt
  - copy/paste images from outlook - die sind über file:// erreichbar - herunterladen, speichern, ersetzen
- - move done in table to title column and replace with pretty checkboix
  - new design für task modal
  - Tags colors
  - task tab - add note button
@@ -37,7 +36,6 @@ https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-stat
 	  
  - full filter options (filet completed/archived als beide oder nur eine)
  - close all nodes/expande all nodes utton fpr tree
- - pretty checkboxes für done
  - dynamische grupierung
  - consolidate store events - gleiche events mit gleich wparameter müssen nicht wiederhol1t werden! - veielleicht brauche ich merhere asyncqueues? 
  - versionnierung alle Änderungen?
