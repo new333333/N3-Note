@@ -100,16 +100,29 @@ body {
 	max-width: 100px;
 }
 
-.n3-task-prio-1 {
+.tabulator [data-internstatus="DONE"] .n3title {
+	color: #ccc;
+	text-decoration: line-through !important;
+}
+
+.tabulator [data-internstatus="TOBEDONE"] .n3title {
+	color: #333;
+}
+
+.tabulator [data-priority="1"] .n3priority, [data-priority="1"] .n3title {
 	font-weight: 100;
 }
-.n3-task-prio-2 {
+.tabulator [data-priority="2"] .n3priority, [data-priority="2"] .n3title {
 	font-weight: 400;
 }
-.n3-task-prio-3 {
+.tabulator [data-priority="3"] .n3priority, [data-priority="3"] .n3title  {
 	font-weight: 1000;
 }
 /* fix for tagify and bulma*/
 .input.is-static:hover {
     border-color: transparent;
+}
+
+.n3-notification {
+	background-color: transparent;	
 }

@@ -1,18 +1,11 @@
 /*
 
- - TODO: window.n3.task.validate.duration zum ende machen
- Usunax odwolania so js merhod z index.hrml zamienic handler
+TODO volltext Suche!!!!
  
-Status - interne werte: tobedone, done
-Done- style in table - durchgesrrichen, xolor light
-
-
- 
- - prio ändern -> style of title ist immer noch alt aber von prio column ist korrekt
   - bei tasb immer rechts miniatur anzeige: bei note die liste von Tasks (als liste ohne filter)
   		bei tasks - miniature note text - zuklappbar
  - file strucure ändern: /data /cache /archive /archive/history /archive/tasks /deleted
- - volltext Suche!!!!
+
 https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-statuses-priorities-and-resolutions/
 	STATUS (WORFLOW): DONE|ARCHIVED -
 		done sagt niht was z umachen ist, 
@@ -110,15 +103,25 @@ window.n3.store = window.n3.store || {};
 window.n3.task = window.n3.task || {
 	"tinymce": false,
 	"validate": {}, 
-	"priorites": {
-		1: "Low",
-		2: "Medium",
-		3: "High"
-	},
+	"priority": [
+		{
+			id: 1,
+			text: "Low"	
+		},
+		{
+			id: 2,
+			text: "Medium"	
+		},
+		{
+			id: 3,
+			text: "High"	
+		}
+	],
 	"tagsList": [],
 	"status": [
 		{
 			id: "TODO",
+			intern: "TOBEDONE",
 			text: "Todo",
 			cssClass: "is-primary",
 			icon: "",
@@ -126,42 +129,56 @@ window.n3.task = window.n3.task || {
 		},
 		{
 			id: "DOING",
+			intern: "TOBEDONE",
 			text: "In Progress",
 			cssClass: "is-primary",
 			icon: ""
 		},
 		{
 			id: "SCHEDULED",
+			intern: "TOBEDONE",
 			text: "Scheduled",
 			cssClass: "is-primary",
 			icon: ""
 		},
 		{
 			id: "WAITING LABOR",
+			intern: "TOBEDONE",
 			text: "Waiting on person",
 			cssClass: "is-primary",
 			icon: ""
 		},
 		{
 			id: "WAITING QS",
+			intern: "TOBEDONE",
 			text: "Waiting QS Installation",
 			cssClass: "is-primary",
 			icon: ""
 		},
 		{
 			id: "WAITING PROD",
+			intern: "TOBEDONE",
 			text: "Waiting Prod installation",
 			cssClass: "is-primary",
 			icon: ""
 		},
 		{
+			id: "DONE",
+			intern: "DONE",
+			text: "Done",
+			cssClass: "is-outlined",
+			icon: ""
+		},		
+		{
 			id: "CANCELED",
+			intern: "DONE",
 			text: "Canceled",
 			cssClass: "is-danger is-outlined",
 			icon: ""
 		},
 		{
 			id: "ARCHIVED",
+			intern: "DONE",
 			text: "Archived",
 			cssClass: "is-success",
 			icon: "fas fa-check"
@@ -1333,15 +1350,7 @@ window.n3.initTaskTable = function() {
 		data: window.n3.tasks,
 		layout: "fitColumns",
 		height: "500px",
-		movableRows: true, //enable user movable rows
-		/*groupBy: "nodeKey",
-		groupHeader: function(value, count, data, group) {
-			//value - the value all members of this group share
-			//count - the number of rows in this group
-			//data - an array of all the row data objects in this group
-			//group - the group component for the group
-			return window.n3.node.getNodeTitlePath(value);
-		},*/
+		// movableRows: true, //enable user movable rows
 		columns: [
 			{
 				title: "Status",
@@ -1352,65 +1361,82 @@ window.n3.initTaskTable = function() {
 					//formatterParams - parameters set for the column
 					//onRendered - function to call when the formatter has been rendered
 					
-					window.n3.task.status.forEach(function(status) {
-						status.selected = (status.id == cell.getValue());
+					var rowElement = cell.getRow().getElement();
+					var status = window.n3.task.status.find(function(status) {
+						return status.id == cell.getValue()
 					});
+					rowElement.dataset.internstatus = status.intern;
 					
 					onRendered(function() {
-						var $select = $("select", cell.getElement());
-						var statusSelect = $select.select2({
-							theme: "n3",
-							minimumResultsForSearch: Infinity,
-							data: window.n3.task.status,
-							templateSelection: function(state) {
+						var tagElement = $(".tag", cell.getElement());
+						
+						var instanceTippy = tippy(tagElement[0], {
+							content: function(trigger) {
+					
 								var html = "";
-								html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-								if (state.icon) {
-									html += "	<span class='icon'>";
-									html += "		<i class='" + state.icon + "'></i>";
-									html += "	</span>";
-								}
-								html += "	<span> " + state.text + "</span>";
-								html += "</span>";
-								
-								var $state = $(html);
-								return $state;
+								html += "<div class='notification n3-notification'><button class='delete'></button><div data-choosestatus class='tags'>";
+								window.n3.task.status.forEach(function(state) {
+									html += " ";
+									html += "<span data-state='" + state.id + "' class='tag " + (state.cssClass ? state.cssClass : "") + " '> ";
+									if (state.icon) {
+										html += "	<span class='icon'>";
+										html += "		<i class='" + state.icon + "'></i>";
+										html += "	</span>";
+									}
+									html += "	<span> " + state.text + "</span>";
+									html += "</span>";
+								});
+								html += "</div></div>";
+					
+								return html;
 							},
-							templateResult: function(state) {
-								var html = "";
-								html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-								if (state.icon) {
-									html += "	<span class='icon'>";
-									html += "		<i class='" + state.icon + "'></i>";
-									html += "	</span>";
-								}
-								html += "	<span> " + state.text + "</span>";
-								html += "</span>";
-								
-								var $state = $(html);
-								return $state;
-							}
-						}).on("change.select2", function(e) {
-							var value = statusSelect.val();
-							cell.setValue(value, false);
-							window.n3.events.triggerEvent("taskModified", {
-								nodeKey: cell.getData().nodeKey,
-								taskId: cell.getData().id
-							});
+							allowHTML: true,
+							theme: 'light-border',
+							trigger: 'click',
+							interactive: true,
+							placement: 'bottom',
+							appendTo: document.body
 						});
 						
-
-						// ignore click row
-						$(".select2-container", cell.getElement()).on("mousedown", function(event) {
+							
+						$(instanceTippy.popper).on("click mousedown", ".tag", function(event) {
 							event.stopPropagation && event.stopPropagation();
 							event.preventDefault && event.preventDefault();
-						}).on("click", function(event) {
+							
+							var state = this.dataset.state;
+							cell.setValue(state, false);
+							
+							instanceTippy.hide();
+						});
+						
+						$(instanceTippy.popper).on("click mousedown", ".delete", function(event) {
+							event.stopPropagation && event.stopPropagation();
+							event.preventDefault && event.preventDefault();
+							instanceTippy.hide();
+						});
+						
+						// ignore click row
+						$(".tag", cell.getElement()).on("mousedown click", function(event) {
 							event.stopPropagation && event.stopPropagation();
 							event.preventDefault && event.preventDefault();
 						});
-					})
+					});
 					
-					return "<select style='width: 180px; '></select>"; //return the contents of the cell;
+					var state = window.n3.task.status.find(function(status) {
+						return status.id == cell.getValue()
+					});
+					
+					var html = "";
+					html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
+					if (state.icon) {
+						html += "	<span class='icon'>";
+						html += "		<i class='" + state.icon + "'></i>";
+						html += "	</span>";
+					}
+					html += "	<span> " + state.text + "</span>";
+					html += "</span>";
+					
+					return html;
 				},
 			},
 			{
@@ -1422,7 +1448,7 @@ window.n3.initTaskTable = function() {
 					//formatterParams - parameters set for the column
 					//onRendered - function to call when the formatter has been rendered
 					var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(cell.getData().nodeKey);
-					return "<div class='n3-task-prio-" + cell.getData().priority + "'><div>" + cell.getValue() + "</div><div class='breadcrumb n3-breadcrumb'>" + window.n3.node.getNodeTitlePath(node) + "</div></div>"; //return the contents of the cell;
+					return "<div class='n3title'>" + cell.getValue() + "</div><div class='breadcrumb n3-breadcrumb'>" + window.n3.node.getNodeTitlePath(node) + "</div>"; //return the contents of the cell;
 				}
 			},
 			{
@@ -1435,18 +1461,16 @@ window.n3.initTaskTable = function() {
 					//formatterParams - parameters set for the column
 					//onRendered - function to call when the formatter has been rendered
 
+					onRendered(function() {
+						var rowElement = cell.getRow().getElement();
+						rowElement.dataset.priority = cell.getValue();
+					});
+
 					// convert old values TODO remove it
-					var v = cell.getValue();
-					if (v == "Low") {
-						v = 1;
-					}
-					if (v == "Medium") {
-						v = 2;
-					}
-					if (v == "High") {
-						v = 3;
-					}
-					return "<div class='n3-task-prio-" + v + "'>" + window.n3.task.priorites[v] + "</div>"; //return the contents of the cell;
+					var priority = window.n3.task.priority.find(function(priority) {
+						return priority.id == cell.getValue()
+					});
+					return "<div class='n3priority'>" + priority.text + "</div>"; //return the contents of the cell;
 				}
 			},
 			{
@@ -1502,7 +1526,6 @@ window.n3.initTaskTable = function() {
 		});
 	});
 	window.n3.tabulator.on("rowUpdated", function(row, e, a) {
-		console.log("Tabulator event - rowUpdated, row", row.getData().nodeKey);
 		window.n3.events.triggerEvent("taskModified", {
 			nodeKey: row.getData().nodeKey,
 			taskId: row.getData().id
@@ -1748,52 +1771,83 @@ window.n3.task.getTaskHTMLEditor = function(form) {
 
 
 window.n3.task.getStatusEditor = function(form, taskStatus) {
-	if (!window.n3.task.statusEditor) {
-		if (taskStatus) {
-			window.n3.task.status.forEach(function(status) {
-				status.selected = (status.id == taskStatus);
-			});
-		}
-		window.n3.task.statusEditor = $("[name='status']", form);
-		window.n3.task.statusEditor.select2({
-			theme: "n3",
-			minimumResultsForSearch: Infinity,
-			data: window.n3.task.status,
-			templateSelection: function(state) {
-				var html = "";
-				html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-				if (state.icon) {
-					html += "	<span class='icon'>";
-					html += "		<i class='" + state.icon + "'></i>";
-					html += "	</span>";
-				}
-				html += "	<span> " + state.text + "</span>";
-				html += "</span>";
-				
-				var $state = $(html);
-				return $state;
-			},
-			templateResult: function(state) {
-				var html = "";
-				html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-				if (state.icon) {
-					html += "	<span class='icon'>";
-					html += "		<i class='" + state.icon + "'></i>";
-					html += "	</span>";
-				}
-				html += "	<span> " + state.text + "</span>";
-				html += "</span>";
-				
-				var $state = $(html);
-				return $state;
-			}
-		});
-	} else {
-		if (taskStatus) {
-			window.n3.task.statusEditor.val(taskStatus);
-			window.n3.task.statusEditor.trigger('change.select2');
-		}
+	if (!taskStatus) {
+		return window.n3.task.statusEditor;
 	}
+	window.n3.task.statusEditor = $("[name='status']", form);
+	window.n3.task.statusEditor.on("change", function(event) {
+		
+		var inputStatus = $(this).val();
+		var state = window.n3.task.status.find(function(status) {
+			return status.id == inputStatus
+		});
+		
+		var html = "";
+		html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
+		if (state.icon) {
+			html += "	<span class='icon'>";
+			html += "		<i class='" + state.icon + "'></i>";
+			html += "	</span>";
+		}
+		html += "	<span> " + state.text + "</span>";
+		html += "</span>";
+		
+		var existingTagEl = $(".tag", window.n3.task.statusEditor.parent());
+		if (existingTagEl.length > 0) {
+			existingTagEl.replaceWith(html);
+		} else {
+			window.n3.task.statusEditor.after(html);
+		}
+		
+		var instanceTippy = tippy($(".tag", window.n3.task.statusEditor.parent())[0], {
+			content: function(trigger) {
+	
+				var html = "";
+				html += "<div class='notification'><button class='delete'></button><div data-choosestatus class='tags'>";
+				window.n3.task.status.forEach(function(state) {
+					html += " ";
+					html += "<span data-state='" + state.id + "' class='tag " + (state.cssClass ? state.cssClass : "") + " '> ";
+					if (state.icon) {
+						html += "	<span class='icon'>";
+						html += "		<i class='" + state.icon + "'></i>";
+						html += "	</span>";
+					}
+					html += "	<span> " + state.text + "</span>";
+					html += "</span>";
+				});
+				html += "</div></div>";
+	
+				return html;
+			},
+			allowHTML: true,
+			theme: 'light-border',
+			trigger: 'click',
+			interactive: true,
+			placement: 'bottom',
+			appendTo: document.body
+		});
+		
+			
+		$(instanceTippy.popper).on("click mousedown", ".tag", function(event) {
+			event.stopPropagation && event.stopPropagation();
+			event.preventDefault && event.preventDefault();
+			
+			var state = this.dataset.state;
+			window.n3.task.statusEditor.val(state).trigger("change");
+			
+			instanceTippy.hide();
+		});
+		
+		$(instanceTippy.popper).on("click mousedown", ".delete", function(event) {
+			event.stopPropagation && event.stopPropagation();
+			event.preventDefault && event.preventDefault();
+			instanceTippy.hide();
+		});
+	});
+	
+	window.n3.task.statusEditor.val(taskStatus).trigger("change");
+	
+	
 	return window.n3.task.statusEditor;
 }
 
@@ -1863,6 +1917,9 @@ window.n3.modal.onOpenTaskDetails = function(nodeKey, taskId, targetElement) {
 window.n3.task.validate.duration = function(form, el) {
 	var $el = $(el);
 	var duration = $el.val();
+	if (duration == "") {
+		return true;
+	}
 	var $validationMessage = $el.closest(":has([data-validate-massage='true'])").find("[data-validate-massage='true']");
 	var valid = parseDuration(duration);
 	if (!valid) {

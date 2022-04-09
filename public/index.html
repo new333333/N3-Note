@@ -18,9 +18,7 @@
 <link href="3rd-party-libs/tabulator-5.1.7/dist/css/tabulator_bulma.min.css" rel="stylesheet">
 <link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet"  />
 <link href="https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="n3/select2/dist/n3.css" rel="stylesheet" />
-
+<link href="https://unpkg.com/tippy.js@6/themes/light-border.css" rel="stylesheet" />
 <link href="n3/n3.css" rel="stylesheet">
 
 
@@ -62,7 +60,6 @@
 					</ul>
 				</div>
 				<div data-tabname="note" data-istab="true">
-				
 					<div class="buttons block are-small">
 						<button data-action="save-node" class="button is-success is-normal" data-tooltip="Save">
 							<span class="icon"> <i class="fa-solid fa-floppy-disk"></i></i>
@@ -137,8 +134,13 @@
 	<script src="3rd-party-libs/tinymce-6.0.1/js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
 	<!-- <script src="3rd-party-libs/tinymce-5.9.2/tinymce.js" referrerpolicy="origin"></script> -->
 	<script src="https://unpkg.com/@yaireo/tagify"></script>
-	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 	<script src="n3/parseDuration.js"></script>
+	<!-- Production -->
+	<script src="https://unpkg.com/@popperjs/core@2"></script>
+	<script src="https://unpkg.com/tippy.js@6"></script>
+	<!-- Development -->
+	<!-- <script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js"></script>
+	<script src="https://unpkg.com/tippy.js@6/dist/tippy-bundle.umd.js"></script> -->
 	<script src="n3/n3.js"></script>
 
 
@@ -229,8 +231,8 @@
 					<div class="column is-four-fifths">
 						<div class="field">
 							<div class="columns control n3-title">
-								<div class="column is-narrow" >
-									<select name="status" style="width: 180px; "></select>
+								<div class="column is-narrow">
+									<input name="status" type="hidden" >
 								</div>
 								<div class="column">
 									<input name="title" class="input" type="text">
