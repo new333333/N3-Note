@@ -1,0 +1,115 @@
+html {
+	height: 100%;
+	font-size: 0.875em;
+}
+
+body {
+	height: 100%;
+	width: 100%;
+}
+
+.n3-main {
+	height: 100%;
+	width: 100%;
+	
+	justify-content: center;
+	
+	display: flex;
+	flex-direction: row;
+}
+
+.n3-no-localfolder {
+	display: none !important;
+}
+
+.n3-no-nodes .n3-content-area > .block {
+	display: none !important;
+}
+
+.n3-node-header {
+	display: flex;
+	align-items: center;
+}
+
+.n3-dropdown {
+	display: inline;
+}
+
+.n3-breadcrumb {
+	display: inline;
+	margin-left: 5px;
+}
+
+.tabulator-cell .breadcrumb {
+	font-size: 10px;	
+	font-weight: 400;
+}
+
+.n3-navigation {
+	width: 30%;
+	
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.n3-content-area {
+	flex: auto;
+	width: 70%;
+	
+	overflow: auto;
+	
+	display: flex;
+	flex-direction: column;
+}
+
+.n3-content-area, .n3-navigation-buttons {
+	padding: 10px 10px 0 10px;
+}
+
+
+.ui-fancytree {
+	height: 100%;
+}
+
+.modal {
+    z-index: 120; /* splitter has 100*/
+}
+
+.n3-node-desciption {
+	height: 400px;
+	padding: 10px;
+	overflow: auto;
+}
+
+.n3-task-details-modal > .modal-content {
+    width: 900px;
+}
+
+.n3-task-details-modal > .modal-content > .box {
+	width: 880px;
+}
+
+
+.n3-task-details-modal .n3-title input {
+	/* width: 100%; */
+}
+
+.n3-task-details-modal .n3-attributes input, .n3-task-details-modal .n3-attributes select {
+	width: 100px;
+	max-width: 100px;
+}
+
+.n3-task-prio-1 {
+	font-weight: 100;
+}
+.n3-task-prio-2 {
+	font-weight: 400;
+}
+.n3-task-prio-3 {
+	font-weight: 1000;
+}
+/* fix for tagify and bulma*/
+.input.is-static:hover {
+    border-color: transparent;
+}
