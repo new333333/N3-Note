@@ -25,14 +25,6 @@
 
 
 <body>
-<!-- 
-
-	Project description:
-		- local storage for all your data, don't lost files in cloud (the files disaepear from Goodle Drive, Sharepoint, etc.)
-
-
--->
-
 	<div class="n3-main n3-no-localfolder n3-no-nodes" data-owner="node" data-flex-splitter-horizontal>
 		<div class="n3-navigation">
 
@@ -146,7 +138,7 @@
 	<!-- <script src="3rd-party-libs/tinymce-5.9.2/tinymce.js" referrerpolicy="origin"></script> -->
 	<script src="https://unpkg.com/@yaireo/tagify"></script>
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+	<script src="n3/parseDuration.js"></script>
 	<script src="n3/n3.js"></script>
 
 
@@ -228,7 +220,7 @@
 	</div>
 
 
-	<div id="n3-task-details" data-taskeditor="true" data-owner="task" data-onopen="window.n3.modal.onOpenTaskDetails" class="modal n3-task-details-modal">
+	<div id="n3-task-details" data-taskeditor="true" data-owner="task" data-onopen="taskeditor-on-open" class="modal n3-task-details-modal">
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box">
@@ -274,10 +266,10 @@
 						<div class="field">
 							<label class="label">Duration
 								<div class="control">
-									<input name="duration" data-validate="window.n3.task.validateDuration" value="" class="input">
+									<input name="duration" data-validate="task-duration-validate" value="" class="input">
 								</div>
 							</label>
-							<p class="help is-danger">This email is invalid</p>
+							<p class="help is-danger" data-validate-massage="true" style="display: none; ">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
 						</div>
 					</div>
 				</div>

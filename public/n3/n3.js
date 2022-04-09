@@ -1,11 +1,17 @@
 /*
 
  - TODO: window.n3.task.validate.duration zum ende machen
+ Usunax odwolania so js merhod z index.hrml zamienic handler
+ 
+Status - interne werte: tobedone, done
+Done- style in table - durchgesrrichen, xolor light
+
+
  
  - prio ändern -> style of title ist immer noch alt aber von prio column ist korrekt
   - bei tasb immer rechts miniatur anzeige: bei note die liste von Tasks (als liste ohne filter)
   		bei tasks - miniature note text - zuklappbar
- - file strucure ändern: /data /cache
+ - file strucure ändern: /data /cache /archive /archive/history /archive/tasks /deleted
  - volltext Suche!!!!
 https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-statuses-priorities-and-resolutions/
 	STATUS (WORFLOW): DONE|ARCHIVED -
@@ -183,6 +189,7 @@ window.n3.events = {
 
 
 $(function() {
+	
 	window.n3.localFolder.init();
 
 	// ESC - close all modalas and dropDowns
@@ -210,6 +217,8 @@ $(function() {
 	window.n3.action.handlers["save-task"] = window.n3.task.save;
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
 	window.n3.action.handlers["open-modal-delete-task-confirm"] = window.n3.action.openModalDeleteTaskConfirm;
+	window.n3.action.handlers["taskeditor-on-open"] = window.n3.modal.onOpenTaskDetails;
+	window.n3.action.handlers["task-duration-validate"] = window.n3.task.validate.duration;
 
 	$(document).on("click", "[data-action]", function(event) {
 		var targetElement = event.target || event.srcElement;
@@ -230,14 +239,15 @@ $(function() {
 			taskId = $ticketDataOwner.dataset.taskid;
 		}
 
-		var $modal = $trigger.closest(".modal");
-		if ($modal) {
-			window.n3.modal.close($modal, true);
-		}
 
 		var action = $trigger.dataset.action;
 		if (window.n3.action.handlers[action]) {
-			window.n3.action.handlers[action](nodeKey, taskId, $trigger);
+			if (window.n3.action.handlers[action](nodeKey, taskId, $trigger)) {
+				var $modal = $trigger.closest(".modal");
+				if ($modal) {
+					window.n3.modal.close($modal, true);
+				}
+			}
 		}
 
 	});
@@ -742,7 +752,9 @@ window.n3.modal.open = function($el) {
 		$el = $el[0];
 	}
 	if ($el.dataset.onopen) {
-		executeFunctionByName($el.dataset.onopen, window, $el);
+		if (window.n3.action.handlers[$el.dataset.onopen]) {
+			window.n3.action.handlers[$el.dataset.onopen](undefined, undefined, $el);
+		}
 	}
 	
 	$el.classList.add("is-active");
@@ -1334,7 +1346,6 @@ window.n3.initTaskTable = function() {
 			{
 				title: "Status",
 				field: "status",
-				initialMaxWidth: 200,
 				maxWidth: 200,
 				formatter: function(cell, formatterParams, onRendered) {
 					//cell - the cell component
@@ -1417,7 +1428,6 @@ window.n3.initTaskTable = function() {
 			{
 				title: "Prio",
 				field: "priority",
-				initialMaxWidth: 100,
 				maxWidth: 100,
 				tooltip: true,
 				formatter: function(cell, formatterParams, onRendered) {
@@ -1442,7 +1452,6 @@ window.n3.initTaskTable = function() {
 			{
 				title: "Tags",
 				field: "tags",
-				initialMaxWidth: 140,
 				maxWidth: 250,
 				formatter: function(cell, formatterParams, onRendered) {
 					//cell - the cell component
@@ -1805,7 +1814,7 @@ window.n3.modal.openTaskDetails = function(task) {
 	window.n3.modal.open(taskDetailsModal);// todo .then?
 }
 
-window.n3.modal.onOpenTaskDetails = function(targetElement) {
+window.n3.modal.onOpenTaskDetails = function(nodeKey, taskId, targetElement) {
 	return new Promise(function(resolve) {
 		var ticketDataOwner = targetElement.closest("[data-owner='task']");
 		var nodeKey = ticketDataOwner.dataset.nodekey;
@@ -1820,6 +1829,7 @@ window.n3.modal.onOpenTaskDetails = function(targetElement) {
 			$("[name='tags']", form).val();
 			$("[name='duration']", form).val("");
 
+			window.n3.task.getTagsEditor(form).removeAllTags();
 			window.n3.task.getStatusEditor(form, "TODO");				
 			window.n3.task.getTaskHTMLEditor(form).then(function(editor) {
 				editor.setContent("");
@@ -1850,26 +1860,38 @@ window.n3.modal.onOpenTaskDetails = function(targetElement) {
 }
 
 
-window.n3.task.validate.duration = function(el) {
-	console.log($(el).val());
-	
+window.n3.task.validate.duration = function(form, el) {
+	var $el = $(el);
+	var duration = $el.val();
+	var $validationMessage = $el.closest(":has([data-validate-massage='true'])").find("[data-validate-massage='true']");
+	var valid = parseDuration(duration);
+	if (!valid) {
+		$validationMessage.show();
+	} else {
+		$validationMessage.hide();
+	}
+	return valid;
 }
 
 window.n3.task.validate.form = function(form) {
 	var validateFields = $("[data-validate]");
+	var validForm = true;
 	validateFields.each(function(index) {
 		if (this.dataset.validate) {
-			executeFunctionByName(this.dataset.validate, window, this);
+			if (window.n3.action.handlers[this.dataset.validate]) {
+				var valid = window.n3.action.handlers[this.dataset.validate](form, this);
+				validForm = validForm && valid;
+			}
 		}
 	});
-	
+	return validForm;
 }
 
 window.n3.task.save = function(nodeKey, taskId, $trigger) {
 	
 	var form = $("[data-taskeditor='true']");
 	if (!window.n3.task.validate.form(form)) {
-		return;
+		return false;
 	}
 	
 	if (!taskId) {
@@ -1953,6 +1975,8 @@ window.n3.task.save = function(nodeKey, taskId, $trigger) {
 			window.n3.tabulator.refreshFilter();
 		});
 	}
+	
+	return true;
 }
 
 window.n3.initFancyTree = function(tree) {
