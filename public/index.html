@@ -16,33 +16,52 @@
 <link href="3rd-party-libs/fancytree-2.38.1/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
 <link href="3rd-party-libs/tabulator-5.1.7/dist/css/tabulator.min.css" rel="stylesheet">
 <link href="3rd-party-libs/tabulator-5.1.7/dist/css/tabulator_bulma.min.css" rel="stylesheet">
-<link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet"  />
+<link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet" />
 <link href="https://unpkg.com/tippy.js@6/themes/light-border.css" rel="stylesheet" />
 <link href="n3/n3.css" rel="stylesheet">
 
 
-<body>
-	<div class="n3-main n3-no-localfolder n3-no-nodes" data-owner="node" data-flex-splitter-horizontal>
-		<div class="n3-navigation">
-
-			<div class="n3-navigation-buttons buttons">
-				<button data-action="add-node" class="button is-primary is-small">
-					<span class="icon"> <i class="fa-solid fa-plus"></i>
-					</span> <span> Note</span>
-				</button>
-				<button data-action="add-task" data-target="n3-task-details" class="button is-primary is-small">
-					<span class="icon"> <i class="fa-solid fa-plus"></i>
-					</span> <span> Task</span>
-				</button>
+<body data-owner="node">
+	<nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+		<div class="navbar-menu">
+			<div class="navbar-start">
+				<div class="navbar-item">
+					<div class="buttons">
+						<button data-action="add-node" class="button ">
+							<span class="icon"> <i class="fa-solid fa-plus"></i>
+							</span> <span> Note</span>
+						</button>
+						<button data-action="add-task" data-target="n3-task-details" class="button is-light">
+							<span class="icon"> <i class="fa-solid fa-plus"></i>
+							</span> <span> Task</span>
+						</button>
+					</div>
+				</div>
 			</div>
+
+			<div class="navbar-end">
+				<div class="navbar-item">
+					<div class="field has-addons">
+						<p class="control">
+							<input class="input" type="text" placeholder="Find a post">
+						</p>
+						<p class="control">
+							<button class="button">Search</button>
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</nav>
+	<div class="n3-main n3-no-localfolder n3-no-nodes" data-flex-splitter-horizontal>
+		<div class="n3-navigation">
 			<div class="n3-navigation-tree" data-tree="true"></div>
 		</div>
 		<div role="separator"></div>
 		<div class="n3-content-area">
 
 			<div class="n3-node-header block">
-				<nav class="n3-breadcrumb breadcrumb" data-breadcrumb="true" aria-label="breadcrumbs">
-				</nav>
+				<nav class="n3-breadcrumb breadcrumb" data-breadcrumb="true" aria-label="breadcrumbs"></nav>
 			</div>
 
 			<div class="block">
@@ -94,7 +113,7 @@
 					</div>
 				</div>
 				<div data-tabname="tasks" data-form="tasks-table" data-istab="true" data-ontabopen="window.n3.ui.onOpenTabTasks" style="display: none;">
-					
+
 					<div class="buttons block">
 						<button data-action="add-task" data-target="n3-task-details" class="button is-primary is-small">
 							<span class="icon"> <i class="fa-solid fa-plus"></i>
@@ -106,14 +125,13 @@
 							<label class="checkbox" data-action="refresh-tasks"> <input type="checkbox" name="children" checked> Children
 							</label>
 						</div>
-						<div data-statusfilter="true" class="column is-two-fifth tags">
-						</div>
-						
+						<div data-statusfilter="true" class="column is-two-fifth tags"></div>
+
 						<div class="column">
 							Tags <input name="tags" value="">
 						</div>
 					</div>
-					<div id="n3-table"></div>
+					<div data-tasks="true"></div>
 				</div>
 				<div data-tabname="files" data-istab="true" style="display: none;">TODO files...</div>
 			</div>
@@ -133,6 +151,7 @@
 	<script src="3rd-party-libs/tinymce-6.0.1/js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
 	<script src="https://unpkg.com/@yaireo/tagify"></script>
 	<script src="n3/parseDuration.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/nextapps-de/flexsearch@0.7.2/dist/flexsearch.bundle.js"></script>
 	<!-- Production -->
 	<script src="https://unpkg.com/@popperjs/core@2"></script>
 	<script src="https://unpkg.com/tippy.js@6"></script>
@@ -224,13 +243,13 @@
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box">
-				
+
 				<div class="columns block">
 					<div class="column is-four-fifths">
 						<div class="field">
 							<div class="columns control n3-title">
 								<div class="column is-narrow">
-									<input name="status" type="hidden" >
+									<input name="status" type="hidden">
 								</div>
 								<div class="column">
 									<input name="title" class="input" type="text">
@@ -248,7 +267,7 @@
 							<div class="control">
 								<div name="description" contenteditable="true" style="position: relative;" spellcheck="false"></div>
 							</div>
-						</div>	
+						</div>
 					</div>
 					<div class="column n3-attributes">
 						<div class="field">
@@ -269,7 +288,7 @@
 									<input name="duration" data-validate="task-duration-validate" value="" class="input">
 								</div>
 							</label>
-							<p class="help is-danger" data-validate-massage="true" style="display: none; ">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
+							<p class="help is-danger" data-validate-massage="true" style="display: none;">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
 						</div>
 					</div>
 				</div>

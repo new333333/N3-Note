@@ -1,6 +1,12 @@
 /*
 
-TODO volltext Suche!!!!
+TODO 
+
+    - liczba taskow pro knoten
+	- import local images from local - copy üpset from Outlook - mit frage ob es machen soll? vielleicht will jemand locale Vilder verlinken
+	- 
+	
+volltext Suche!!!!
  
   - bei tasb immer rechts miniatur anzeige: bei note die liste von Tasks (als liste ohne filter)
   		bei tasks - miniature note text - zuklappbar
@@ -202,8 +208,11 @@ window.n3.events = {
 	"listeners": {}
 };
 
+window.n3.search = window.n3.search || {};
+
 
 $(function() {
+	window.n3.search.index = new FlexSearch.Index({});
 	
 	window.n3.localFolder.init();
 
@@ -1244,7 +1253,25 @@ window.n3.store.readTreeData = function() {
 						var tree = false;
 						if (treeContents) {
 							tree = JSON.parse(treeContents);
+							
+							
+							tree.forEach(function(node) {
+								window.n3.search.index.add("nodeKey:" + node.key, node.title + " " + node.data.description);								
+							});
+							
 						}
+						var xxxxxx = window.n3.search.index.search("created");
+						console.log(xxxxxx);
+						
+						window.n3.search.index.export(function(key, data){ 
+						    
+						    // you need to store both the key and the data!
+						    // e.g. use the key for the filename and save your data
+						    
+						    console.log(key, data);
+						});
+						
+
 						resolve(tree);
 					});
 				});
@@ -1343,7 +1370,7 @@ window.n3.store.readAllData = function() {
 
 window.n3.initTaskTable = function() {
 
-	window.n3.tabulator = new Tabulator("#n3-table", {
+	window.n3.tabulator = new Tabulator("[data-tasks]", {
 		reactiveData: true, //enable reactive data
 		data: window.n3.tasks,
 		layout: "fitColumns",
@@ -2099,6 +2126,11 @@ window.n3.initFancyTree = function(tree) {
 			} else {
 				window.n3.tabulator.setFilter("nodeKey", "=", "HIDE_ALL_TASKS_THIS_NODE_KEY_DOES_NOT_EXISTS");
 			}
+		},
+		enhanceTitle: function(event, data) {
+			var $spanTitle = $(".fancytree-title", data.node.span);
+			console.log($spanTitle);
+			$spanTitle.append(" <span class='n3-title-info'>[12]</span>");
 		},
 		dnd5: {
 			// autoExpandMS: 400,
