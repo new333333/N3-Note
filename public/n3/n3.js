@@ -276,7 +276,7 @@ $(function() {
 
 	});
 
-	$(document).on("blur", "[data-noteeditor='true'] [name='title']", function() {
+	$(document).on("blur", "[data-noteeditor] [name='title']", function() {
 		var $nodeDataOwner = this.closest("[data-owner='node']");
 		var nodeKey = false;
 		if ($nodeDataOwner && $nodeDataOwner.dataset.nodekey) {
@@ -327,14 +327,14 @@ window.n3.ui.initTaskTab = function() {
 	});
 	
 	
-	$("[data-statusfilter='true']").html(html);
+	$("[data-statusfilter]").html(html);
 }
 
 window.n3.node.save = function(nodeKey, taskId, $trigger) {
-	var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 	var modified = false;
 
-	var form = $("[data-noteeditor='true']");
+	var form = $("[data-noteeditor]");
 
 	var newTitle = $("[name='title']", form).val();
 	if (node.title != newTitle) {
@@ -374,7 +374,7 @@ window.n3.action.closeDialog = function(nodeKey, taskId, $trigger) {
 }
 
 window.n3.action.activateNode = function(nodeKey) {
-	var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 	node.setActive();
 };
 
@@ -406,12 +406,12 @@ window.n3.ui.openModal = function(nodeKey, taskId, $trigger) {
 
 window.n3.ui.changeTab = function(nodeKey, taskId, $trigger) {
 	var tab = $trigger.dataset.target;
-	$("[data-istab='true']").hide();
+	$("[data-tab]").hide();
 	var tab = $("[data-tabname='" + tab + "']");
 	tab.show();
 
-	$("[data-tabtrigger='true']").removeClass("is-active");
-	var $tabLi = $trigger.closest("[data-tabtrigger='true']");
+	$("[data-tabtrigger]").removeClass("is-active");
+	var $tabLi = $trigger.closest("[data-tabtrigger]");
 	$($tabLi).addClass("is-active");
 	if (tab[0].dataset.ontabopen) {
 		executeFunctionByName(tab[0].dataset.ontabopen, window, $trigger);
@@ -434,7 +434,7 @@ window.n3.ui.onOpenTabTasks = function($trigger) {
 }
 
 window.n3.node.delete = function(nodeKey, taskId, $trigger) {
-	var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 	if (node.title === "root") {
 		return;
 	}
@@ -785,7 +785,7 @@ window.n3.modal.open = function($el) {
 }
 
 window.n3.modal.close = function($el, force) {
-	if ($el.classList.contains("is-active") && ($el.dataset.preventclosemodal != "true" || force)) {
+	if ($el.classList.contains("is-active") && ($el.dataset.preventclosemodal || force)) {
 		$el.classList.remove("is-active");
 	}
 }
@@ -813,17 +813,17 @@ window.n3.node.getNewNodeData = function() {
 }
 
 window.n3.node.add = function() {
-	var node = $.ui.fancytree.getTree("[data-tree='true']").getActiveNode();
+	var node = $.ui.fancytree.getTree("[data-tree]").getActiveNode();
 	if (!node) {
-		node = $.ui.fancytree.getTree("[data-tree='true']").getRootNode();
+		node = $.ui.fancytree.getTree("[data-tree]").getRootNode();
 	}
 
 	var newNode = window.n3.node.getNewNodeData();
 
 	if (node.children && node.children.length == 0) {
 		var tree = [newNode];
-		$("[data-tree='true']").fancytree("option", "source", tree);
-		newNode = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(newNode.key);
+		$("[data-tree]").fancytree("option", "source", tree);
+		newNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(newNode.key);
 		// modifyChild is not trigged, so call manually save
 		window.n3.events.triggerEvent("nodeModified", {
 			key: newNode.key
@@ -1016,7 +1016,7 @@ window.n3.store.writeNodes = function() {
 
 	return new Promise(function(resolve) {
 
-		var fancyTree = $.ui.fancytree.getTree("[data-tree='true']");
+		var fancyTree = $.ui.fancytree.getTree("[data-tree]");
 		var nodesTree = fancyTree.toDict(true);
 
 		window.n3.store.extractNodesImages(nodesTree.children).then(function(nodeTreeUpdated) {
@@ -1094,9 +1094,8 @@ window.n3.node.activateNode = function(node) {
 		$nodeDataOwner[0].dataset.nodekey = node.key;
 
 		window.n3.refreshNodeTasksFilter(node.key).then(function() { });
-		window.n3.ui.displayBreadCrumbs(node);
 
-		var form = $("[data-noteeditor='true']");
+		var form = $("[data-noteeditor]");
 
 		$("[name='title']", form).val(node.title);
 		window.n3.store.loadImages((((node || {}).data || {}).description || "")).then(function(htmlText) {
@@ -1169,7 +1168,7 @@ window.n3.refreshNodeTasksFilter = function(nodeKey, taskId, trigger) {
 			}
 		}
 
-		var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+		var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 
 		var childrenTasks = $("[name='children']", form).prop("checked");
 		
@@ -1227,15 +1226,21 @@ window.n3.refreshNodeTasksFilter = function(nodeKey, taskId, trigger) {
 	});
 }
 
-window.n3.ui.displayBreadCrumbs = function(node) {
-	$("[data-breadcrumb='true']").html(window.n3.node.getNodeTitlePath(node));
+window.n3.ui.displayBreadCrumb = function(node, $el) {
+	$el.html(window.n3.node.getNodeTitlePath(node));
 }
 
 window.n3.node.getNodeTitlePath = function(node) {
 	var breadCrumbs = "";
 	var pathNode = node;
 	while (pathNode && pathNode.title !== "root") {
-		breadCrumbs = "<li " + (pathNode.key == node.key ? " class='is-active' " : "") + "><a " + (pathNode.key == node.key ? " aria-current='page' " : " data-owner='node' ") + " href='#' data-action='activate-node' data-nodeKey='" + pathNode.key + "'>" + pathNode.title + "</a></li>" + breadCrumbs;
+		var breadCrumbNote = "<li " + (pathNode.key == node.key ? " class='is-active' " : "") + ">";
+		breadCrumbNote += "<a " + (pathNode.key == node.key ? " aria-current='page' " : " data-owner='node' ") + " href='#' data-action='activate-node' data-nodeKey='" + pathNode.key + "'>";
+		breadCrumbNote += pathNode.title;
+		breadCrumbNote += "</a>";
+		breadCrumbNote += "</li>";
+		
+		breadCrumbs = breadCrumbNote + breadCrumbs;
 		pathNode = pathNode.parent;
 	}
 	breadCrumbs = "<ul>" + breadCrumbs + "</ul>"
@@ -1472,7 +1477,7 @@ window.n3.initTaskTable = function() {
 					//cell - the cell component
 					//formatterParams - parameters set for the column
 					//onRendered - function to call when the formatter has been rendered
-					var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(cell.getData().nodeKey);
+					var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(cell.getData().nodeKey);
 					return "<div class='n3title'>" + cell.getValue() + "</div><div class='breadcrumb n3-breadcrumb'>" + window.n3.node.getNodeTitlePath(node) + "</div>"; //return the contents of the cell;
 				}
 			},
@@ -1565,7 +1570,7 @@ window.n3.initTaskTable = function() {
 	window.n3.tabulator.on("dataFiltered", function(filters, rows) {
 		//filters - array of filters currently applied
 		//rows - array of row components that pass the filters
-		$("[data-tasksbadge='true']").html(rows.length);
+		$("[data-tasksbadge]").html(rows.length);
 	});
 
 
@@ -1641,7 +1646,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 						var $nodeDataOwner = $(editor.getContainer()).closest("[data-owner='node']");
 						var nodeKey = $nodeDataOwner[0].dataset.nodekey;
 
-						var currentNode = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+						var currentNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 						currentNode.data.description = editor.getContent();
 						window.n3.events.triggerEvent("nodeModified", {
 							key: currentNode.key
@@ -1898,8 +1903,11 @@ window.n3.modal.onOpenTaskDetails = function(nodeKey, taskId, targetElement) {
 		var ticketDataOwner = targetElement.closest("[data-owner='task']");
 		var nodeKey = ticketDataOwner.dataset.nodekey;
 		var taskId = ticketDataOwner.dataset.taskid;
-
-		var form = $("[data-taskeditor='true']");		
+		
+		var form = $("[data-taskeditor]");	
+		
+		var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+		window.n3.ui.displayBreadCrumb(node, $("[data-breadcrumb]", form));
 		
 		if (!taskId) {
 			// Add task
@@ -1945,7 +1953,7 @@ window.n3.task.validate.duration = function(form, el) {
 	if (duration == "") {
 		return true;
 	}
-	var $validationMessage = $el.closest(":has([data-validate-massage='true'])").find("[data-validate-massage='true']");
+	var $validationMessage = $el.closest(":has([data-validate-massage)").find("[data-validate-massage='true']");
 	var valid = parseDuration(duration);
 	if (!valid) {
 		$validationMessage.show();
@@ -1971,7 +1979,7 @@ window.n3.task.validate.form = function(form) {
 
 window.n3.task.save = function(nodeKey, taskId, $trigger) {
 	
-	var form = $("[data-taskeditor='true']");
+	var form = $("[data-taskeditor]");
 	if (!window.n3.task.validate.form(form)) {
 		return false;
 	}
@@ -1979,9 +1987,9 @@ window.n3.task.save = function(nodeKey, taskId, $trigger) {
 	if (!taskId) {
 		// it's add task from modal'
 
-		var node = $.ui.fancytree.getTree("[data-tree='true']").getNodeByKey(nodeKey);
+		var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 		if (!node) {
-			node = $.ui.fancytree.getTree("[data-tree='true']").getRootNode();
+			node = $.ui.fancytree.getTree("[data-tree]").getRootNode();
 		}
 
 		if (node.title == "root") {
@@ -2084,7 +2092,7 @@ window.n3.initFancyTree = function(tree) {
 		lazyLogCache[name] = entry;
 		// console.log(msg);
 	}
-	var ff = $("[data-tree='true']").fancytree({
+	var ff = $("[data-tree]").fancytree({
 		source: tree,
 		extensions: ["dnd5"],
 		nodata: false,

@@ -63,7 +63,7 @@ body {
 	flex-direction: column;
 }
 
-.n3-content-area, .n3-navigation-buttons {
+/* .n3-content-area,  */.n3-navigation-buttons {
 	padding: 10px 10px 0 10px;
 }
 

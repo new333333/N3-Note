@@ -55,29 +55,24 @@
 	</nav>
 	<div class="n3-main n3-no-localfolder n3-no-nodes" data-flex-splitter-horizontal>
 		<div class="n3-navigation">
-			<div class="n3-navigation-tree" data-tree="true"></div>
+			<div class="n3-navigation-tree" data-tree></div>
 		</div>
 		<div role="separator"></div>
 		<div class="n3-content-area">
 
-			<div class="n3-node-header block">
-				<nav class="n3-breadcrumb breadcrumb" data-breadcrumb="true" aria-label="breadcrumbs"></nav>
-			</div>
-
 			<div class="block">
-				<div class="tabs is-boxed ">
+
+				<div class="tabs">
 					<ul>
-						<li data-tabtrigger="true" class="is-active"><a data-action="change-tab" data-target="note">Note</a></li>
-						<li data-tabtrigger="true"><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span style="background-color: yellow;">[<span data-tasksbadge="true"
+						<li data-tabtrigger class="is-active"><a data-action="change-tab" data-target="note">Note</a></li>
+						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span style="background-color: yellow;">[<span data-tasksbadge
 									style="font-weight: 700;"></span>]
 							</span>
 						</a></li>
-						<li data-tabtrigger="true"><a data-action="change-tab" data-target="files">Files</a></li>
-						</a>
-						</li>
+						<li data-tabtrigger><a data-action="change-tab" data-target="files">Files</a></li>
 					</ul>
 				</div>
-				<div data-tabname="note" data-istab="true">
+				<div data-tabname="note" data-tab>
 					<div class="buttons block are-small">
 						<button data-action="save-node" class="button is-success is-normal" data-tooltip="Save">
 							<span class="icon"> <i class="fa-solid fa-floppy-disk"></i></i>
@@ -97,7 +92,7 @@
 						</button>
 
 					</div>
-					<div data-noteeditor="true" class="block">
+					<div data-noteeditor class="block">
 						<div class="field">
 							<label class="label">Title</label>
 							<div class="control">
@@ -112,7 +107,7 @@
 						</div>
 					</div>
 				</div>
-				<div data-tabname="tasks" data-form="tasks-table" data-istab="true" data-ontabopen="window.n3.ui.onOpenTabTasks" style="display: none;">
+				<div data-tabname="tasks" data-form="tasks-table" data-tab data-ontabopen="window.n3.ui.onOpenTabTasks" style="display: none;">
 
 					<div class="buttons block">
 						<button data-action="add-task" data-target="n3-task-details" class="button is-primary is-small">
@@ -125,15 +120,15 @@
 							<label class="checkbox" data-action="refresh-tasks"> <input type="checkbox" name="children" checked> Children
 							</label>
 						</div>
-						<div data-statusfilter="true" class="column is-two-fifth tags"></div>
+						<div data-statusfilter class="column is-two-fifth tags"></div>
 
 						<div class="column">
 							Tags <input name="tags" value="">
 						</div>
 					</div>
-					<div data-tasks="true"></div>
+					<div data-tasks></div>
 				</div>
-				<div data-tabname="files" data-istab="true" style="display: none;">TODO files...</div>
+				<div data-tabname="files" data-tab style="display: none;">TODO files...</div>
 			</div>
 
 		</div>
@@ -161,7 +156,7 @@
 	<script src="n3/n3.js"></script>
 
 
-	<div id="n3-table-choose-local-folder-modal" data-preventclosemodal="true" class="modal">
+	<div id="n3-table-choose-local-folder-modal" data-preventclosemodal class="modal">
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box has-text-centered">
@@ -171,7 +166,7 @@
 		</div>
 	</div>
 
-	<div id="n3-table-verify-local-folder-modal" data-preventclosemodal="true" class="modal">
+	<div id="n3-table-verify-local-folder-modal" data-preventclosemodal class="modal">
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box has-text-centered">
@@ -184,7 +179,7 @@
 		</div>
 	</div>
 
-	<div id="n3-table-noAccessError-local-folder-modal" data-preventclosemodal="true" class="modal">
+	<div id="n3-table-noAccessError-local-folder-modal" data-preventclosemodal class="modal">
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box has-text-centered">
@@ -239,10 +234,13 @@
 	</div>
 
 
-	<div id="n3-task-details" data-taskeditor="true" data-owner="task" data-onopen="taskeditor-on-open" class="modal n3-task-details-modal">
+	<div id="n3-task-details" data-taskeditor data-owner="task" data-onopen="taskeditor-on-open" class="modal n3-task-details-modal">
 		<div class="modal-background"></div>
 		<div class="modal-content">
 			<div class="box">
+				<div class="n3-node-header block">
+					<nav class="n3-breadcrumb breadcrumb" data-breadcrumb aria-label="breadcrumbs"></nav>
+				</div>
 
 				<div class="columns block">
 					<div class="column is-four-fifths">
@@ -288,7 +286,7 @@
 									<input name="duration" data-validate="task-duration-validate" value="" class="input">
 								</div>
 							</label>
-							<p class="help is-danger" data-validate-massage="true" style="display: none;">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
+							<p class="help is-danger" data-validate-massage style="display: none;">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
 						</div>
 					</div>
 				</div>
