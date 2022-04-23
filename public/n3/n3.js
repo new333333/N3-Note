@@ -2,31 +2,16 @@
 
 TODO 
 
-    - liczba taskow pro knoten
-	- import local images from local - copy üpset from Outlook - mit frage ob es machen soll? vielleicht will jemand locale Vilder verlinken
-	- 
-	
-volltext Suche!!!!
- 
-  - bei tasb immer rechts miniatur anzeige: bei note die liste von Tasks (als liste ohne filter)
-  		bei tasks - miniature note text - zuklappbar
- - file strucure ändern: /data /cache /archive /archive/history /archive/tasks /deleted
 
-https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-statuses-priorities-and-resolutions/
-	STATUS (WORFLOW): DONE|ARCHIVED -
-		done sagt niht was z umachen ist, 
-		Status soll sagen was zu machen ist: TODO, WORKING ON, Cancelled (das ist resolution?), Closed
-	resolutions: 
+ - file strucure ändern - bei Google
 
- bold in tree auf nodes with tasks
+
  - versionnierung und dann save buttons entfernen
  - option: task veschieben zu andere note
  - davon PWA machen
  - Note tab bold markieren wenn eine Bescheibung gibt!
     dazu: wie viele wörte/Bilder
     Tasks auch bold machen wenn Taskjs gibt
- - copy/paste images from outlook - die sind über file:// erreichbar - herunterladen, speichern, ersetzen
- - new design für task modal
  - Tags colors
  - task tab - add note button
  - rename images to image_UUIUIUZIU.png
@@ -59,6 +44,8 @@ https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-stat
  - inbox?
  - personen?
  - performance tests
+ - import local images from local - fpr copy/pdate from Outlook - it's not possible to access local files (security: Access to image at 'file:///E:/Projekte/n3todo-local/public/img/n3todo-logo_200_58.png' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: http, data, chrome, chrome-extension, chrome-untrusted, https.)
+   Tried all Approaches from: https://stackoverflow.com/questions/6150289/how-can-i-convert-an-image-into-base64-string-using-javascript
  
 ***********************************************
  @warten es reicht wenn die erst von liste verschwinden, und wieder kommen, aber als done zu setzen ist falsch...
@@ -1748,7 +1735,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					imgs.each(function() {
 						if (!this.dataset.n3src && (this.src.indexOf("data:image/") > -1 || this.src.indexOf("blob:") > -1)) {
 							var fileExt = "png"; // this.src.substring(11, 14);
-							this.dataset.n3src = "files/" + crypto.randomUUID() + "." + fileExt;
+							this.dataset.n3src = "files/image_" + crypto.randomUUID() + "." + fileExt;
 						}
 					});
 
@@ -1875,7 +1862,7 @@ window.n3.task.getTaskHTMLEditor = function(form) {
 					imgs.each(function() {
 						if (!this.dataset.n3src && (this.src.indexOf("data:image/") > -1 || this.src.indexOf("blob:") > -1)) {
 							var fileExt = "png"; // this.src.substring(11, 14);
-							this.dataset.n3src = "files/" + crypto.randomUUID() + "." + fileExt;
+							this.dataset.n3src = "files/image_" + crypto.randomUUID() + "." + fileExt;
 						}
 					});
 				});
