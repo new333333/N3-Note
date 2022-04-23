@@ -22,8 +22,9 @@
 
 
 <body data-owner="node">
+
 	<nav class="navbar is-primary" role="navigation" aria-label="main navigation">
-		<div class="navbar-menu">
+		<div class="navbar-menu is-active">
 			<div class="navbar-start">
 				<div class="navbar-item">
 					<div class="buttons">
@@ -43,19 +44,22 @@
 				<div class="navbar-item">
 					<div class="field has-addons">
 						<p class="control">
-							<input class="input" type="text" placeholder="Find a post">
-						</p>
-						<p class="control">
-							<button class="button">Search</button>
+							<button class="button" data-action="open-modal" data-target="n3-search-dialog">
+								<span class="icon"> <i class="fa-solid fa-magnifying-glass"></i>
+								</span> <span>Search</span>
+							</button>
 						</p>
 					</div>
 				</div>
 			</div>
 		</div>
 	</nav>
-	<div class="n3-main n3-no-localfolder n3-no-nodes" data-flex-splitter-horizontal>
-		<div class="n3-navigation">
-			<div class="n3-navigation-tree" data-tree></div>
+
+	<div class="n3-app n3-main n3-no-localfolder n3-no-nodes" data-flex-splitter-horizontal>
+
+
+		<div class="n3-leftside">
+			<div data-tree></div>
 		</div>
 		<div role="separator"></div>
 		<div class="n3-content-area">
@@ -65,8 +69,7 @@
 				<div class="tabs">
 					<ul>
 						<li data-tabtrigger class="is-active"><a data-action="change-tab" data-target="note">Note</a></li>
-						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span style="background-color: yellow;">[<span data-tasksbadge
-									style="font-weight: 700;"></span>]
+						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span style="background-color: yellow;">[<span data-tasksbadge style="font-weight: 700;"></span>]
 							</span>
 						</a></li>
 						<li data-tabtrigger><a data-action="change-tab" data-target="files">Files</a></li>
@@ -74,6 +77,18 @@
 				</div>
 				<div data-tabname="note" data-tab>
 					<div class="buttons block are-small">
+						<button data-action="save-node" class="button is-success is-normal" data-tooltip="Save">
+							<span class="icon"> <i class="fa-solid fa-floppy-disk"></i></i>
+							</span>
+						</button>
+						<button data-action="add-node" class="button is-primary" data-tooltip="Add note">
+							<span class="icon"> <i class="fa-solid fa-plus"></i>
+							</span> <span> Note</span>
+						</button>
+						<button data-action="add-task" data-target="n3-task-details" class="button is-primary" data-tooltip="Add task">
+							<span class="icon"> <i class="fa-solid fa-plus"></i>
+							</span> <span> Task</span>
+						</button>
 						<button data-action="open-modal" data-target="n3-table-delete-note-modal" class="button" data-tooltip="Delete note">
 							<span class="icon"> <i class="fa-solid fa-trash-can"></i>
 							</span> <span> Delete</span>
@@ -82,13 +97,11 @@
 					</div>
 					<div data-noteeditor class="block">
 						<div class="field">
-							<label class="label">Title</label>
 							<div class="control">
 								<input name="title" class="input" type="text">
 							</div>
 						</div>
 						<div class="field">
-							<label class="label">Description</label>
 							<div class="control">
 								<div class="n3-node-desciption" name="description" contenteditable="true" style="position: relative;" spellcheck="false"></div>
 							</div>
@@ -296,6 +309,23 @@
 				</div>
 			</div>
 		</div>
+	</div>
+
+	<div id="n3-search-dialog" class="modal n3-search-dialog" data-closeonesc data-onopen="searchdialog-on-open">
+		<div class="modal-background"></div>
+		<div class="modal-content">
+			<nav class="panel box">
+				<div class="panel-block">
+					<p class="control has-icons-left">
+						<input data-searchinput class="input" type="text" placeholder="Search"> <span class="icon is-left"> <i class="fas fa-search" aria-hidden="true"></i>
+						</span>
+					</p>
+				</div>
+				<section data-searchresultslist>
+				</section>
+			</nav>
+		</div>
+		<button data-action="close-dialog" class="modal-close is-large" aria-label="close"></button>
 	</div>
 
 </body>

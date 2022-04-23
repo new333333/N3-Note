@@ -45,7 +45,7 @@ body {
 	font-weight: 400;
 }
 
-.n3-navigation {
+.n3-leftside {
 	width: 30%;
 	
 	height: 100%;
@@ -132,7 +132,7 @@ body {
 	font-size: 11px;
 }
 
-.n3-navigation, .n3-main ul.fancytree-container {
+.n3-leftside, .n3-main ul.fancytree-container {
 	background-color: #f6f6f6;
 }
 
@@ -154,4 +154,15 @@ body {
     border-color: hsl(0, 0%, 21%);
 }
 
+.n3-search-dialog section {
+	overflow-y: auto;
+	height: 500px;
+}
 
+.n3-search-dialog .breadcrumb {
+	font-size: 0.7rem;
+}
+
+.n3-search-dialog .panel-block {
+	flex-wrap: wrap;
+}

@@ -58,6 +58,7 @@ https://support.atlassian.com/jira-cloud-administration/docs/what-are-issue-stat
  - jpournal?
  - inbox?
  - personen?
+ - performance tests
  
 ***********************************************
  @warten es reicht wenn die erst von liste verschwinden, und wieder kommen, aber als done zu setzen ist falsch...
@@ -212,22 +213,25 @@ window.n3.search = window.n3.search || {};
 
 
 $(function() {
-	window.n3.search.index = new FlexSearch.Index({});
-	
-	window.n3.localFolder.init();
-
-	// ESC - close all modalas and dropDowns
-	$(document).on("keydown", function(event) {
-		var e = event || window.event;
-
-		if (e.keyCode === 27) { // Escape key
-			/*window.n3.modal.closeAll();*/
-			window.n3.ui.closeAllDropdowns();
-		}
+	window.n3.search.index = new FlexSearch.Index({
+		tokenize: "forward"
 	});
+	window.n3.search.document = new FlexSearch.Document({
+		tokenize: "forward", 
+		document: {
+        	id: "id",
+        	tag: "type",
+        	index: ["type", "content"],
+        	store: ["type", "title", "nodeKey"] 
+    	}
+    });
+    
+	window.n3.localFolder.init();
 
 	window.n3.action.handlers["refresh-tasks"] = window.n3.refreshNodeTasksFilter;
 	window.n3.action.handlers["activate-node"] = window.n3.action.activateNode;
+	window.n3.action.handlers["searchresults-activate-node"] = window.n3.action.activateNodeFromSaecrhResults;
+	window.n3.action.handlers["searchresults-open-task"] = window.n3.action.openTaskDetailsFromSaecrhResults;
 	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.choose;
 	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
 	window.n3.action.handlers["add-node"] = window.n3.node.add;
@@ -243,6 +247,8 @@ $(function() {
 	window.n3.action.handlers["open-modal-delete-task-confirm"] = window.n3.action.openModalDeleteTaskConfirm;
 	window.n3.action.handlers["taskeditor-on-open"] = window.n3.modal.onOpenTaskDetails;
 	window.n3.action.handlers["task-duration-validate"] = window.n3.task.validate.duration;
+	window.n3.action.handlers["searchdialog-on-open"] = window.n3.ui.openSearchDialog;
+
 
 	$(document).on("click", "[data-action]", function(event) {
 		var targetElement = event.target || event.srcElement;
@@ -310,6 +316,38 @@ $(function() {
 	
 });
 
+window.n3.ui.openSearchDialog = function(nodeKey, taskId, $trigger) {
+	var $searchInput = $("[data-searchinput]", $($trigger));
+	$searchInput.focus();
+	var $resultsList = $("[data-searchresultslist]", $($trigger));
+	$searchInput.on("keyup", function(event) {
+		var e = event || window.event;
+
+		var searchText = $(this).val();
+		var searchResults = window.n3.search.document.search(searchText, {index: "content", enrich: true });
+		$resultsList.html("");
+		searchResults[0].result.forEach(function(searchResult) {
+			var nodeKey;
+			if (searchResult.doc.type === "note") {
+				nodeKey = searchResult.id;
+			} else {
+				nodeKey = searchResult.doc.nodeKey;
+			}
+			var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+			var breadCrumb = window.n3.node.getNodeTitlePath(node, true);
+			
+			
+			if (searchResult.doc.type === "note") {
+				$resultsList.append("<div class='panel-block'><a href='#' class='is-active' data-action='searchresults-activate-node' data-owner='node' data-nodeKey='" + searchResult.id + "'><span class='panel-icon'><span class='fancytree-icon'></span></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
+			} else {
+				$resultsList.append("<div class='panel-block'><a href='#' class='panel-block is-active' data-action='searchresults-open-task' data-owner='task' data-taskId='" + searchResult.id + "'><span class='panel-icon'><i class='fa-solid fa-list-check'></i></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
+			}
+		});
+		
+	});
+	
+}
+
 window.n3.ui.initTaskTab = function() {
 	
 	var html = "";
@@ -373,6 +411,23 @@ window.n3.action.closeDialog = function(nodeKey, taskId, $trigger) {
 	window.n3.modal.close($modal, true);
 }
 
+window.n3.action.activateNodeFromSaecrhResults = function(nodeKey, taskId, $trigger) {
+	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+	node.setActive();
+	window.n3.action.closeDialog(nodeKey, taskId, $trigger);
+};
+
+window.n3.action.openTaskDetailsFromSaecrhResults  = function(nodeKey, taskId, $trigger) {
+	var task = window.n3.tasks.find(function(task) {
+		return task.id == taskId
+	});
+	nodeKey = task.nodeKey;
+	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+	node.setActive();
+	window.n3.modal.openTaskDetails({id: taskId, nodeKey: nodeKey});
+	window.n3.action.closeDialog(nodeKey, taskId, $trigger);
+}
+
 window.n3.action.activateNode = function(nodeKey) {
 	var node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 	node.setActive();
@@ -401,6 +456,18 @@ window.n3.ui.openModal = function(nodeKey, taskId, $trigger) {
 	}
 
 	window.n3.modal.open($target);
+	
+	if ($target.dataset.hasOwnProperty("closeonesc")) {
+	
+		$(document).on("keydown.closemodal", function(event) {
+			var e = event || window.event;
+	
+			if (e.keyCode === 27) { // Escape key
+				window.n3.modal.close($target, true);
+			}
+		});
+		
+	}
 }
 
 
@@ -775,30 +842,26 @@ window.n3.modal.open = function($el) {
 	if ($el instanceof jQuery) {
 		$el = $el[0];
 	}
+	$el.classList.add("is-active");
+	
 	if ($el.dataset.onopen) {
 		if (window.n3.action.handlers[$el.dataset.onopen]) {
 			window.n3.action.handlers[$el.dataset.onopen](undefined, undefined, $el);
 		}
 	}
 	
-	$el.classList.add("is-active");
 }
 
 window.n3.modal.close = function($el, force) {
 	if ($el.classList.contains("is-active") && ($el.dataset.preventclosemodal || force)) {
 		$el.classList.remove("is-active");
 	}
+	$(document).off("keydown.closemodal");
 }
 
 window.n3.modal.closeAll = function(force) {
 	(document.querySelectorAll(".modal.is-active") || []).forEach(($modal) => {
 		window.n3.modal.close($modal, force);
-	});
-}
-
-window.n3.ui.closeAllDropdowns = function() {
-	(document.querySelectorAll(".dropdown.is-active") || []).forEach(($dropDown) => {
-		$dropDown.classList.remove('is-active');
 	});
 }
 
@@ -1230,14 +1293,19 @@ window.n3.ui.displayBreadCrumb = function(node, $el) {
 	$el.html(window.n3.node.getNodeTitlePath(node));
 }
 
-window.n3.node.getNodeTitlePath = function(node) {
+// noLinks - in Bulma gibt es keine BredCrumb ohne Links...
+window.n3.node.getNodeTitlePath = function(node, noLinks) {
 	var breadCrumbs = "";
 	var pathNode = node;
 	while (pathNode && pathNode.title !== "root") {
 		var breadCrumbNote = "<li " + (pathNode.key == node.key ? " class='is-active' " : "") + ">";
-		breadCrumbNote += "<a " + (pathNode.key == node.key ? " aria-current='page' " : " data-owner='node' ") + " href='#' data-action='activate-node' data-nodeKey='" + pathNode.key + "'>";
+		//if (!noLinks) {
+			breadCrumbNote += "<a " + (pathNode.key == node.key ? " aria-current='page' " : " data-owner='node' ") + " href='#' data-action='activate-node' data-nodeKey='" + pathNode.key + "'>";
+		//}
 		breadCrumbNote += pathNode.title;
-		breadCrumbNote += "</a>";
+		//if (!noLinks) {
+			breadCrumbNote += "</a>";
+		//}
 		breadCrumbNote += "</li>";
 		
 		breadCrumbs = breadCrumbNote + breadCrumbs;
@@ -1259,22 +1327,27 @@ window.n3.store.readTreeData = function() {
 						if (treeContents) {
 							tree = JSON.parse(treeContents);
 							
+							addTreeToSearchIndex(tree);
 							
-							tree.forEach(function(node) {
-								window.n3.search.index.add("nodeKey:" + node.key, node.title + " " + node.data.description);								
-							});
+							function addTreeToSearchIndex(tree) {
+								if (!tree) {
+									return;
+								}
+								tree.forEach(function(node) {
+									// window.n3.search.index.add("nodeKey:" + node.key, node.title + " " + node.data.description);
+									
+									window.n3.search.document.add({
+										id: node.key,
+										type: "note",
+										title: node.title,
+										content: node.title + " " + node.data.description
+									});		
+									
+									addTreeToSearchIndex(node.children);					
+								});
+							}
 							
 						}
-						var xxxxxx = window.n3.search.index.search("created");
-						console.log(xxxxxx);
-						
-						window.n3.search.index.export(function(key, data){ 
-						    
-						    // you need to store both the key and the data!
-						    // e.g. use the key for the filename and save your data
-						    
-						    console.log(key, data);
-						});
 						
 
 						resolve(tree);
@@ -1338,6 +1411,16 @@ window.n3.store.readTasksData = function(tasks) {
 											delete task.archived;
 
 											tasks.push(task);
+											
+											// window.n3.search.index.add("taskId:" + task.id, task.title + " " + task.description);
+											
+											window.n3.search.document.add({
+												id: task.id,
+												nodeKey: task.nodeKey,
+												type: "task",
+												title: task.title,
+												content: task.title + "  " + task.description
+											});							
 										});
 										loopEntries();
 									});
@@ -1435,6 +1518,11 @@ window.n3.initTaskTable = function() {
 							
 							var state = this.dataset.state;
 							cell.setValue(state, false);
+							
+							window.n3.events.triggerEvent("taskModified", {
+								nodeKey: cell.getData().nodeKey,
+								taskId: cell.getData().id
+							});
 							
 							instanceTippy.hide();
 						});
@@ -1597,9 +1685,9 @@ window.n3.initTaskTable = function() {
 		window.n3.task.movingTaskOnNodeKey = false;
 	});
 
-	window.n3.tabulator.on("dataChanged", function(data, a, b, c) {
-		// console.log("Tabulator dataChanged", data, a, b, c);
-	});
+/*	window.n3.tabulator.on("dataChanged", function(data, a, b, c) {
+		console.log("Tabulator dataChanged", data, a, b, c);
+	});*/
 
 }
 
@@ -2110,9 +2198,9 @@ window.n3.initFancyTree = function(tree) {
 		},
 		init: function(event, data) {
 			if (data.tree.rootNode.children.length > 0) {
-				$(".n3-main").removeClass("n3-no-nodes");
+				$(".n3-app").removeClass("n3-no-nodes");
 			} else {
-				$(".n3-main").addClass("n3-no-nodes");
+				$(".n3-app").addClass("n3-no-nodes");
 			}
 			if (data.tree.rootNode.children.length > 0) {
 				data.tree.activateKey(data.tree.rootNode.children[0].key);
@@ -2121,10 +2209,10 @@ window.n3.initFancyTree = function(tree) {
 		modifyChild: function(event, data) {
 			// bei remove - data.tree.rootNode.children is not yet actuall
 			if (data.operation == "remove" && data.node.title == "root") {
-				$(".n3-main").addClass("n3-no-nodes");
+				$(".n3-app").addClass("n3-no-nodes");
 			} else if (data.operation != "remove" && data.tree.rootNode.children.length > 0) {
 				// on add new node, when there is no statusNodeType !== "nodata" node
-				$(".n3-main").removeClass("n3-no-nodes");
+				$(".n3-app").removeClass("n3-no-nodes");
 			}
 		},
 		// --- Node events -------------------------------------------------			
@@ -2137,8 +2225,36 @@ window.n3.initFancyTree = function(tree) {
 		},
 		enhanceTitle: function(event, data) {
 			var $spanTitle = $(".fancytree-title", data.node.span);
-			console.log($spanTitle);
-			$spanTitle.append(" <span class='n3-title-info'>[12]</span>");
+			
+			var childrenNodesKeys = "|" + collectChildrenNodesKeys(data.node).join("|") + "|";
+	
+			var tasksAmount = window.n3.tasks.reduce(function(sum, task) {
+				var updatedSum = sum;
+				
+				var status = window.n3.task.status.find(function(status) {
+					return status.id == task.status
+				});
+				
+				if (childrenNodesKeys.indexOf("|" + task.nodeKey + "|") > -1 && status.intern == "TOBEDONE") {
+					updatedSum++;
+				}
+				return updatedSum;
+			}, 0);
+			
+			if (tasksAmount > 0) {
+				$spanTitle.append(" <span class='n3-title-info'>["+ tasksAmount + "]</span>");
+			}
+			
+			function collectChildrenNodesKeys(node) {
+				var childrenKeys = [];
+				childrenKeys.push(node.key);
+				if (node.children) {
+					for (var i = 0; i < node.children.length; i++) {
+						childrenKeys = childrenKeys.concat(collectChildrenNodesKeys(node.children[i]));
+					}
+				}
+				return childrenKeys;
+			}
 		},
 		dnd5: {
 			// autoExpandMS: 400,
