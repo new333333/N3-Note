@@ -68,8 +68,9 @@
 
 				<div class="tabs">
 					<ul>
-						<li data-tabtrigger class="is-active"><a data-action="change-tab" data-target="note">Note</a></li>
-						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span style="background-color: yellow;">[<span data-tasksbadge style="font-weight: 700;"></span>]
+						<li data-tabtrigger class="is-active"><a data-action="change-tab" data-target="note">Note&nbsp;<span class="n3-tabInfo" data-notebadge>-&nbsp;<span></span>
+							</span></a></li>
+						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span class="n3-tabInfo" data-tasksbadge>-&nbsp;<span></span>
 							</span>
 						</a></li>
 						<li data-tabtrigger><a data-action="change-tab" data-target="files">Files</a></li>
@@ -147,13 +148,11 @@
 	<script src="3rd-party-libs/tinymce-6.0.1/js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
 	<script src="https://unpkg.com/@yaireo/tagify"></script>
 	<script src="n3/parseDuration.js"></script>
+	<script src="n3/pretty-bytes.js"></script>
 	<script src="https://cdn.jsdelivr.net/gh/nextapps-de/flexsearch@0.7.2/dist/flexsearch.bundle.js"></script>
 	<!-- Production -->
 	<script src="https://unpkg.com/@popperjs/core@2"></script>
 	<script src="https://unpkg.com/tippy.js@6"></script>
-	<!-- Development -->
-	<!-- <script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js"></script>
-	<script src="https://unpkg.com/tippy.js@6/dist/tippy-bundle.umd.js"></script> -->
 	<script src="n3/n3.js"></script>
 
 

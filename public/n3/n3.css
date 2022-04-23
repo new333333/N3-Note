@@ -166,3 +166,10 @@ body {
 .n3-search-dialog .panel-block {
 	flex-wrap: wrap;
 }
+
+.n3-tabInfo {
+	/* background-color: yellow; */
+	font-weight: 700;
+	font-size: 10px;
+}
+
