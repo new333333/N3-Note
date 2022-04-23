@@ -6,22 +6,19 @@ TODO
  - file strucure ändern - bei Google
 
 
- - versionnierung und dann save buttons entfernen
+ - versionnierung und dann save buttons entfernen -  - versions tylko dla description i title ale niezaleznie
+ - Opcja move/copy task (dla note jest z drzewka)
+ - Widok taskow lista: sortowanie, filtrowanie
+ - Suche opcje: szukaj historie, szukaj skasowane
  - option: task veschieben zu andere note
  - davon PWA machen
- - Note tab bold markieren wenn eine Bescheibung gibt!
-    dazu: wie viele wörte/Bilder
-    Tasks auch bold machen wenn Taskjs gibt
  - Tags colors
- - task tab - add note button
  - changes log - welche nodes/tasks wurden geändert für nachverfolgung von Arbeit
- - full text search: lunrjs, elasticlunr.js 
- - node description und alle attributen die nicht in tree gezeigt werden in anderen datein spreichern, Descriuptio nist zu lang
  - better filters - save, add, remove 
  - recuring tasks? reopen? deadline? date - kann eine Woche/Monat/Jahr sein (von - bis) 
  - subtasks - checkliste	  
-
- 
+ - Ocr with tesseractjs
+ - bulma theme ? better change to symantic UI  
 
 	  
  - full filter options (filet completed/archived als beide oder nur eine)
