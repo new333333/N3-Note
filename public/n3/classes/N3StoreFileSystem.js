@@ -101,13 +101,13 @@ class N3Directory {
 
 class N3StoreFileSystem extends N3StoreAbstract {
 
-	#notesFolder
+	#dataFolder
 	#imagesFolder
 
 	constructor(directoryHandle) {
 		super();
 		this.#imagesFolder = "assets";
-		this.#notesFolder = "notes";
+		this.#dataFolder = "data";
 		this.localDirectoryHandle = directoryHandle;
 	};
 

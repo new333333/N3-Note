@@ -185,9 +185,7 @@ window.n3.action = window.n3.action || {
 	"handlers": {}
 };
 
-window.n3.localFolder = {
-	"dir": false
-};
+window.n3.localFolder = {};
 window.n3.tasks = [];
 window.n3.tabulator = false;
 
@@ -296,6 +294,10 @@ $(function() {
 		let operation = obj.operation; // modify, add, move
 		let fields = obj.fields; // description, title
 		return new Promise(function(resolve) {
+			
+			
+			
+			
 			let fancyTree = $.ui.fancytree.getTree("[data-tree]");
 			let tree = fancyTree.toDict(true);
 			n3Store.saveNodes(tree).then(function() {
@@ -625,57 +627,28 @@ window.n3.events.triggerEvent = function(eventName, paramObj) {
 }
 
 
-window.n3.localFolder.getDirectoryHandle = function() {
-
-	return new Promise(function(resolve) {
-
-		if (window.n3.localFolder.dir) {
-			resolve(window.n3.localFolder.dir);
-		} else {
-			get("localFolder").then(function(dir) {
-				window.n3.localFolder.dir = dir;
-				resolve(window.n3.localFolder.dir);
-			}, function() {
-				resolve(false);
-			});
-		}
-
-	});
-}
-
 window.n3.localFolder.init = function() {
-	if (!window.n3.localFolder.dir) {
-		get("localFolder").then(function(dir) {
-			if (dir) {
-				window.n3.localFolder.dir = dir;
-				n3Store = new N3StoreFileSystem(dir);
-				document.getElementById("n3-folder-verify-foldername").innerHTML = window.n3.localFolder.dir.name;
-				window.n3.modal.open(document.getElementById("n3-table-verify-local-folder-modal"));
-			} else {
-				window.n3.modal.open(document.getElementById("n3-table-choose-local-folder-modal"));
-			}
-		});
-	} else {
-		document.getElementById("n3-folder-verify-foldername").innerHTML = window.n3.localFolder.dir.name;
-		window.n3.modal.open(document.getElementById("n3-table-verify-local-folder-modal"));
-	}
+	get("localFolder").then(function(dir) {
+		if (dir) {
+			document.getElementById("n3-folder-verify-foldername").innerHTML = dir.name;
+			window.n3.modal.open(document.getElementById("n3-table-verify-local-folder-modal"));
+		} else {
+			window.n3.modal.open(document.getElementById("n3-table-choose-local-folder-modal"));
+		}
+	});
 }
 
 
 window.n3.localFolder.select = function() {
 
 	try {
-		window.n3.localFolder.dir = false;
 		del("localFolder").then(function() {
 
 			window.showDirectoryPicker({
 				mode: "readwrite"
 			}).then(function(dir) {
 				
-				n3Store = new N3StoreFileSystem(dir);
-				
-				window.n3.localFolder.dir = dir;
-				window.n3.localFolder.queryVerifyPermission().then(function() { });
+				window.n3.localFolder.queryVerifyPermission(dir).then(function() { });
 			});
 		});
 	} catch (err) {
@@ -687,23 +660,35 @@ window.n3.localFolder.select = function() {
 }
 
 
-window.n3.localFolder.queryVerifyPermission = function() {
+window.n3.localFolder.queryVerifyPermission = function(dir) {
 	return new Promise(function(resolve) {
-
-		window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-			window.n3.localFolder.verifyPermission(localFolder, true).then(function(granted) {
+		
+		(function(dir) {
+			return new Promise(function(resolveI, rejectI) {
+				if (!dir) {
+					get("localFolder").then(function(dir) {
+						resolveI(dir);
+					});
+				} else {
+					resolveI(dir);
+				}
+			});
+		})(dir).then(function(dir) {
+			window.n3.localFolder.verifyPermission(dir, true).then(function(granted) {
 				if (granted) {
-
-					set("localFolder", window.n3.localFolder.dir).then(function() {
+					
+					n3Store = new N3StoreFileSystem(dir);
+	
+					set("localFolder", dir).then(function() {
 						window.n3.modal.closeAll();
 					});
-
+	
 					window.n3.modal.closeAll(true);
-
+	
 					n3Store.loadData().then(function(data) {
 						$(".n3-no-localfolder").removeClass("n3-no-localfolder");
 						window.n3.initTaskTable();
-
+	
 						var tasks = data.tasks;
 						window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
 						
@@ -712,7 +697,7 @@ window.n3.localFolder.queryVerifyPermission = function() {
 						
 						resolve(true);
 					});
-
+	
 				} else {
 					window.n3.modal.closeAll(true);
 					window.n3.modal.open(document.getElementById("n3-table-noAccessError-local-folder-modal"));
@@ -720,6 +705,7 @@ window.n3.localFolder.queryVerifyPermission = function() {
 				}
 			});
 		});
+
 	});
 }
 
