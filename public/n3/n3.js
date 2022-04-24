@@ -197,7 +197,7 @@ window.n3.search = window.n3.search || {};
 
 $(function() {
 	
-	let n3Store = new N3Store();
+	let n3Store = new N3StoreFileSystem();
 
 	window.n3.search.index = new FlexSearch.Index({
 		tokenize: "forward"

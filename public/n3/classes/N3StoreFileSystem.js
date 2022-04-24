@@ -1,9 +1,9 @@
 
-class N3Store {
+class N3StoreFileSystem extends N3StoreAbstract {
 
 	constructor() {
+		super();
 	};
-
 
 	// TODO: remove it after erfactoring - store every node separatly
 	saveNodes(tree) {
@@ -30,7 +30,7 @@ class N3Store {
 	}
 	
 	// TODO: refactor to remove tasks one by one
-	deleteTasks = function(nodeKey) {
+	deleteTasks(nodeKey) {
 	
 		return new Promise(function(resolve) {
 			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
