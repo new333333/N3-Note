@@ -290,19 +290,26 @@ $(function() {
 	});
 
 	window.n3.events.addListener("nodeModified", function(obj) {
-		let modifiedNodeKey = obj.key;
+		let nodeKey = obj.key;
 		let operation = obj.operation; // modify, add, move
 		let fields = obj.fields; // description, title
 		return new Promise(function(resolve) {
 			
+			if (operation == "add") {
+				let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+				n3Store.addNote(node).then(function() {
+					resolve();
+				});
+			} else {
 			
 			
+				let fancyTree = $.ui.fancytree.getTree("[data-tree]");
+				let tree = fancyTree.toDict(true);
+				n3Store.saveNodes(tree).then(function() {
+					resolve();
+				});
 			
-			let fancyTree = $.ui.fancytree.getTree("[data-tree]");
-			let tree = fancyTree.toDict(true);
-			n3Store.saveNodes(tree).then(function() {
-				resolve();
-			});
+			}
 		});
 	});
 	
@@ -792,19 +799,11 @@ window.n3.node.add = function() {
 		let tree = [newNode];
 		$("[data-tree]").fancytree("option", "source", tree);
 		newNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(newNode.key);
-		// modifyChild is not trigged, so call manually save
-		window.n3.events.triggerEvent("nodeModified", {
-			key: newNode.key,
-			operation: "add"
-		});
 	} else {
 		newNode = node.addNode(newNode, "child");
 	}
 	newNode.setActive();
-	window.n3.events.triggerEvent("nodeModified", {
-		key: newNode.key,
-		operation: "add"
-	});
+	n3Store.addNote(newNode).then(function() {});
 }
 
 window.n3.node.activateNode = function(node) {

@@ -8,6 +8,9 @@ class N3StoreAbstract {
 		if (typeof this.saveNodes !== "function") {
 			throw new TypeError("Must override method saveNodes");
 		}
+		if (typeof this.addNote !== "function") {
+			throw new TypeError("Must override method addNote");
+		}
 		if (typeof this.deleteTasks !== "function") {
 			throw new TypeError("Must override method deleteTasks");
 		}
@@ -62,6 +65,22 @@ class N3StoreAbstract {
 			// tree - root contains only fancytree internal-root node so precess only children
 			that.#extractNodesImages(tree.children).then(function(tree) {
 				that.writeNodes(tree).then(function() {
+					resolve();
+				}).catch(function(error) {
+					reject(error);
+				});
+			});
+		});
+	}
+	
+	addNote(note) {
+		var that = this;
+		return new Promise(function(resolve, reject) {
+			that.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
+				note.data = node.data || {};
+				note.data.description = htmltext;
+				
+				that.addNote(tree).then(function() {
 					resolve();
 				}).catch(function(error) {
 					reject(error);
