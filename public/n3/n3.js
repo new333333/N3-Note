@@ -2,7 +2,8 @@
 
 TODO 
 
- - Migration - "files/*" -> "*"
+ - Migration json: - "files/*" -> "*"
+ - file structure changed
 
 
  - file strucure ändern - bei Google
@@ -366,23 +367,25 @@ window.n3.ui.openSearchDialog = function(nodeKey, taskId, $trigger) {
 		let searchText = $(this).val();
 		let searchResults = window.n3.search.document.search(searchText, {index: "content", enrich: true });
 		$resultsList.html("");
-		searchResults[0].result.forEach(function(searchResult) {
-			let nodeKey;
-			if (searchResult.doc.type === "note") {
-				nodeKey = searchResult.id;
-			} else {
-				nodeKey = searchResult.doc.nodeKey;
-			}
-			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
-			let breadCrumb = window.n3.node.getNodeTitlePath(node, true);
-			
-			
-			if (searchResult.doc.type === "note") {
-				$resultsList.append("<div class='panel-block'><a href='#' class='is-active' data-action='searchresults-activate-node' data-owner='node' data-nodeKey='" + searchResult.id + "'><span class='panel-icon'><span class='fancytree-icon'></span></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
-			} else {
-				$resultsList.append("<div class='panel-block'><a href='#' class='panel-block is-active' data-action='searchresults-open-task' data-owner='task' data-taskId='" + searchResult.id + "'><span class='panel-icon'><i class='fa-solid fa-list-check'></i></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
-			}
-		});
+		if (searchResults && searchResults.length > 0) {
+			searchResults[0].result.forEach(function(searchResult) {
+				let nodeKey;
+				if (searchResult.doc.type === "note") {
+					nodeKey = searchResult.id;
+				} else {
+					nodeKey = searchResult.doc.nodeKey;
+				}
+				let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+				let breadCrumb = window.n3.node.getNodeTitlePath(node, true);
+				
+				
+				if (searchResult.doc.type === "note") {
+					$resultsList.append("<div class='panel-block'><a href='#' class='is-active' data-action='searchresults-activate-node' data-owner='node' data-nodeKey='" + searchResult.id + "'><span class='panel-icon'><span class='fancytree-icon'></span></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
+				} else {
+					$resultsList.append("<div class='panel-block'><a href='#' class='panel-block is-active' data-action='searchresults-open-task' data-owner='task' data-taskId='" + searchResult.id + "'><span class='panel-icon'><i class='fa-solid fa-list-check'></i></span> " + searchResult.doc.title +  "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
+				}
+			});
+		}
 		
 	});
 	

@@ -17,10 +17,10 @@ class N3StoreAbstract {
 	};
 
 
-	loadTree = function() {
+	loadNodes = function() {
 		var that = this;
 		return new Promise(function(resolve, reject) {
-			that.readTree().then(function(treeContents) {
+			that.readNodes().then(function(treeContents) {
 				let tree = false;
 				if (treeContents) {
 					tree = JSON.parse(treeContents);
@@ -279,7 +279,7 @@ class N3StoreAbstract {
 	loadData() {
 		var that = this;
 		return new Promise(function(resolve) {
-			that.loadTree().then(function(tree) {
+			that.loadNodes().then(function(tree) {
 				that.loadTasks().then(function(tasks) {
 					resolve({tree:tree, tasks: tasks});
 				});

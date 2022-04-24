@@ -106,7 +106,7 @@ class N3StoreFileSystem extends N3StoreAbstract {
 
 	constructor() {
 		super();
-		this.#imagesFolder = "files";
+		this.#imagesFolder = "assets";
 	};
 
 
@@ -216,7 +216,7 @@ class N3StoreFileSystem extends N3StoreAbstract {
 		});
 	}
 
-	readTree() {
+	readNodes() {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
