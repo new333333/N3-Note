@@ -2,6 +2,8 @@
 
 TODO 
 
+ - Migration - "files/*" -> "*"
+
 
  - file strucure ändern - bei Google
 
@@ -194,10 +196,10 @@ window.n3.events = {
 
 window.n3.search = window.n3.search || {};
 
+let n3Store = new N3StoreFileSystem();
 
 $(function() {
 	
-	let n3Store = new N3StoreFileSystem();
 
 	window.n3.search.index = new FlexSearch.Index({
 		tokenize: "forward"
@@ -314,7 +316,23 @@ $(function() {
 		});
 	});
 	
-	window.n3.events.addListener("taskModified", window.n3.store.writeNodeTasks);
+	window.n3.events.addListener("taskModified", function(params) {
+		let nodeKey = params.nodeKey;
+		let taskId = params.taskId;
+		
+		let tasksToSave = window.n3.tasks.filter(function(task) {
+			return task.nodeKey == nodeKey;
+		});
+		
+		return new Promise(function(resolve) {
+			n3Store.saveTasks(params, tasksToSave).then(function() {
+				resolve();
+			});
+		});
+	});
+	
+	
+	
 	window.addEventListener("beforeunload", function(event) {
 		let $nodeDataOwner = $("[data-owner='node']");
 		let nodeKey = $nodeDataOwner[0].dataset.nodekey;
@@ -781,183 +799,6 @@ window.n3.node.add = function() {
 	});
 }
 
-
-window.n3.store.extractImages = function(htmltext) {
-
-	return new Promise(function(resolve) {
-		if (!htmltext) {
-			resolve("");
-		}
-
-		let $description = $("<div />")
-		$description.html(htmltext);
-
-		let imgs = $("img", $description);
-
-		(function loopImages(i) {
-
-			if (i >= imgs.length) {
-				let html = $description.html();
-				resolve(html);
-			} else {
-				let nextImg = imgs[i];
-
-				if (nextImg.src.indexOf("data:image/") == -1) {
-					loopImages(i + 1);
-				} else {
-
-					let filePath = nextImg.dataset.n3src;
-
-					fetch(nextImg.src).then(function(base64Response) {
-						base64Response.blob().then(function(blob) {
-							
-							let n3File = new N3File(filePath);
-
-							n3File.exists().then(function(exists) {
-								if (exists) {
-									nextImg.src = "";
-									loopImages(i + 1);
-								} else {
-
-									let n3Blob = new N3Blob(blob);
-									n3Blob.save(filePath).then(function() {
-										nextImg.src = "";
-										loopImages(i + 1);
-									}).catch(function(error) {
-										console.log(error);
-										loopImages(i + 1);	
-									});
-								}
-							});
-
-						});
-
-					});
-
-				}
-			}
-		})(0);
-
-	});
-}
-
-window.n3.store.extractNodesImages = function(nodes) {
-
-	return new Promise(function(resolve) {
-
-		if (!nodes || nodes.length == 0) {
-			resolve(nodes);
-		}
-
-		(function loopNodes(i) {
-
-			if (i >= nodes.length) {
-				resolve(nodes);
-			} else {
-				let node = nodes[i];
-				node.data = node.data || {};
-				node.data.modificationDate = JSJoda.Instant.now().toString();
-				// conert from old structure, TODO remove it
-				if (!node.data.creationDate) {
-					node.data.creationDate = JSJoda.Instant.now().toString();
-				}
-
-				window.n3.store.extractNodesImages(node.children).then(function(childrenUpdated) {
-					node.children = childrenUpdated;
-
-					window.n3.store.extractImages((node.data || {}).description || "").then(function(htmltext) {
-						node.data = node.data || {};
-						node.data["description"] = htmltext;
-						loopNodes(i + 1);
-					});
-
-				});
-
-			}
-		})(0);
-
-	});
-
-}
-
-window.n3.store.extractTasksImages = function(tasks) {
-	return new Promise(function(resolve) {
-
-		if (!tasks || tasks.length == 0) {
-			resolve(tasks);
-		}
-
-		(function loopTasks(i) {
-
-			if (i >= tasks.length) {
-				resolve(tasks);
-			} else {
-				let task = tasks[i];
-				task.modificationDate = JSJoda.Instant.now().toString();
-				// conert from old structure, TODO remove it
-				if (!task.creationDate) {
-					task.creationDate = JSJoda.Instant.now().toString();
-				}
-
-				window.n3.store.extractImages(task.description || "").then(function(htmltext) {
-					task["description"] = htmltext;
-					loopTasks(i + 1);
-				});
-
-			}
-		})(0);
-	});
-}
-
-
-window.n3.store.writeNodeTasks = function(params) {
-
-	return new Promise(function(resolve) {
-
-		let nodeKey = params.nodeKey;
-		let taskId = params.taskId;
-
-		window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-			localFolder.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-				tableDirHandle.getFileHandle(nodeKey + ".json", { create: true }).then(function(tasksFileHandle) {
-					tasksFileHandle.createWritable().then(function(writable) {
-
-						let nodeTasksToWrite = window.n3.tasks.filter(function(task) {
-							return task.nodeKey == nodeKey;
-						});
-
-						nodeTasksToWrite = JSON.parse(JSON.stringify(nodeTasksToWrite));
-						nodeTasksToWrite.forEach(function(task) {
-							delete task["nodeKey"];
-						});
-
-						if (nodeTasksToWrite && nodeTasksToWrite.length > 0) {
-
-							window.n3.store.extractTasksImages(nodeTasksToWrite).then(function(nodeTasksToWriteUpdated) {
-
-								writable.write(JSON.stringify(nodeTasksToWriteUpdated, null, 2)).then(function() {
-									writable.close().then(function() {
-										console.log("window.n3.store.writeNodeTasks " + nodeKey + " ready");
-										resolve();
-									});
-								});
-
-							});
-
-						} else {
-							n3Store.deleteTasks(nodeKey).then(function() {
-								resolve();
-							});
-						}
-					});
-				});
-			});
-		});
-	});
-
-}
-
-
 window.n3.node.activateNode = function(node) {
 	return new Promise(function(resolve) {
 
@@ -970,8 +811,7 @@ window.n3.node.activateNode = function(node) {
 
 		$("[name='title']", form).val(node.title);
 		var description = ((node || {}).data || {}).description || "";
-		let n3Description = new N3Description(description);
-		n3Description.loadImages(description).then(function(htmlText) {
+		n3Store.loadImages("node", node.key, description).then(function(htmlText) {
 			window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
 				htmlEditor.setContent(htmlText);
 				htmlEditor.setDirty(false);
@@ -1494,8 +1334,11 @@ window.n3.initTaskTable = function() {
 		// let data = window.n3.tabulator.getData();
 		// window.n3.storeTasks(node.key);
 		console.log("Tabulator event - rowMoved, from node: " + row.getData().nodeKey + " to node: " + window.n3.task.movingTaskOnNodeKey);
+		
+		// TODO: after refactoring (saving tasks separattly) it can be removed
 		window.n3.events.triggerEvent("taskModified", {
-			nodeKey: window.n3.task.movingTaskOnNodeKey
+			nodeKey: window.n3.task.movingTaskOnNodeKey,
+			taskId: row.getData().id
 		});
 		window.n3.events.triggerEvent("taskModified", {
 			nodeKey: row.getData().nodeKey,
@@ -1573,7 +1416,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					imgs.each(function() {
 						if (!this.dataset.n3src && (this.src.indexOf("data:image/") > -1 || this.src.indexOf("blob:") > -1)) {
 							let fileExt = "png"; // this.src.substring(11, 14);
-							this.dataset.n3src = "files/image_" + crypto.randomUUID() + "." + fileExt;
+							this.dataset.n3src = "image_" + crypto.randomUUID() + "." + fileExt;
 						}
 					});
 
@@ -1700,7 +1543,7 @@ window.n3.task.getTaskHTMLEditor = function(form) {
 					imgs.each(function() {
 						if (!this.dataset.n3src && (this.src.indexOf("data:image/") > -1 || this.src.indexOf("blob:") > -1)) {
 							let fileExt = "png"; // this.src.substring(11, 14);
-							this.dataset.n3src = "files/image_" + crypto.randomUUID() + "." + fileExt;
+							this.dataset.n3src = "image_" + crypto.randomUUID() + "." + fileExt;
 						}
 					});
 				});
@@ -1848,8 +1691,7 @@ window.n3.modal.onOpenTaskDetails = function(nodeKey, taskId, targetElement) {
 			window.n3.task.getStatusEditor(form, task.status);
 			$("[name='duration']", form).val(task.duration || "");
 		
-			let n3Description = new N3Description((task || {}).description || "");
-			n3Description.loadImages().then(function(htmlText) {
+			n3Store.loadImages("task", task.id, (task || {}).description || "").then(function(htmlText) {
 				window.n3.task.getTaskHTMLEditor(form).then(function(htmlEditor) {
 					htmlEditor.setContent(htmlText);
 					htmlEditor.setDirty(false);
