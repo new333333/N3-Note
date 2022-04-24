@@ -197,7 +197,7 @@ window.n3.events = {
 
 window.n3.search = window.n3.search || {};
 
-let n3Store = new N3StoreFileSystem();
+let n3Store;
 
 $(function() {
 	
@@ -221,7 +221,7 @@ $(function() {
 	window.n3.action.handlers["activate-node"] = window.n3.action.activateNode;
 	window.n3.action.handlers["searchresults-activate-node"] = window.n3.action.activateNodeFromSearchResults;
 	window.n3.action.handlers["searchresults-open-task"] = window.n3.action.openTaskDetailsFromSaecrhResults;
-	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.choose;
+	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.select;
 	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
 	window.n3.action.handlers["add-node"] = window.n3.node.add;
 	window.n3.action.handlers["add-task"] = window.n3.task.add;
@@ -334,28 +334,44 @@ $(function() {
 	
 	
 	
+	// TODO: it doesn't work...'
 	window.addEventListener("beforeunload", function(event) {
-		let $nodeDataOwner = $("[data-owner='node']");
-		let nodeKey = $nodeDataOwner[0].dataset.nodekey;
-		// TODO: check if title or description is dirty first...
-		window.n3.events.triggerEvent("nodeModified", {
-			key: nodeKey,
-			operation: "modify"
-		});
-	});
-	window.addEventListener("unload", function(event) {
-		let $nodeDataOwner = $("[data-owner='node']");
-		let nodeKey = $nodeDataOwner[0].dataset.nodekey;
-		// TODO: check if title or description is dirty first...
-		window.n3.events.triggerEvent("nodeModified", {
-			key: nodeKey,
-			operation: "modify"
-		});
+		window.n3.ui.onUnload(event);
 	});
 	
 	window.n3.ui.initTaskTab();
 	
 });
+
+window.n3.ui.onUnload = function(event) {
+	let $nodeDataOwner = $("[data-owner='node']");
+	let nodeKey = $nodeDataOwner[0].dataset.nodekey;
+	
+	let modifiedFields = [];
+	
+	let newTitle = $("[data-noteeditor] [name='title']").val();
+	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+	
+	if (newTitle != node.title) {
+		node.title = newTitle;
+		modifiedFields.push("title");
+	}
+	
+	let form = $("[data-noteeditor]");
+	window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
+		if (htmlEditor.isDirty()) {
+			node.data.description = editor.getContent();
+			modifiedFields.push("description");
+		}
+	});
+	
+	window.n3.events.triggerEvent("nodeModified", {
+		key: nodeKey,
+		operation: "modify",
+		modifiedFields: modifiedFields
+	});
+}
+
 
 window.n3.ui.openSearchDialog = function(nodeKey, taskId, $trigger) {
 	let $searchInput = $("[data-searchinput]", $($trigger));
@@ -632,6 +648,7 @@ window.n3.localFolder.init = function() {
 		get("localFolder").then(function(dir) {
 			if (dir) {
 				window.n3.localFolder.dir = dir;
+				n3Store = new N3StoreFileSystem(dir);
 				document.getElementById("n3-folder-verify-foldername").innerHTML = window.n3.localFolder.dir.name;
 				window.n3.modal.open(document.getElementById("n3-table-verify-local-folder-modal"));
 			} else {
@@ -645,24 +662,20 @@ window.n3.localFolder.init = function() {
 }
 
 
-window.n3.localFolder.choose = function() {
+window.n3.localFolder.select = function() {
 
 	try {
 		window.n3.localFolder.dir = false;
 		del("localFolder").then(function() {
 
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-
-				if (!localFolder) {
-					window.showDirectoryPicker({
-						mode: "readwrite"
-					}).then(function(dir) {
-						window.n3.localFolder.dir = dir;
-						window.n3.localFolder.queryVerifyPermission().then(function() { });
-					});
-				} else {
-					window.n3.localFolder.queryVerifyPermission().then(function() { });
-				}
+			window.showDirectoryPicker({
+				mode: "readwrite"
+			}).then(function(dir) {
+				
+				n3Store = new N3StoreFileSystem(dir);
+				
+				window.n3.localFolder.dir = dir;
+				window.n3.localFolder.queryVerifyPermission().then(function() { });
 			});
 		});
 	} catch (err) {
@@ -690,11 +703,12 @@ window.n3.localFolder.queryVerifyPermission = function() {
 					n3Store.loadData().then(function(data) {
 						$(".n3-no-localfolder").removeClass("n3-no-localfolder");
 						window.n3.initTaskTable();
+
+						var tasks = data.tasks;
+						window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
+						
 						window.n3.initFancyTree(data.tree);
 						
-						var tasks = data.tasks;
-						
-						window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
 						
 						resolve(true);
 					});

@@ -68,9 +68,10 @@ class N3Blob {
 
 class N3Directory {
 
-	constructor(dirs, create) {
+	constructor(directoryHandle, dirs, create) {
 		this.dirs = dirs;
 		this.create = create;
+		this.localDirectoryHandle = directoryHandle;
 	};
 
 	getHandle() {
@@ -83,12 +84,10 @@ class N3Directory {
 					resolve(dirHandle);
 				} else {
 
-					window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-						localFolder.getDirectoryHandle(that.dirs[i], { create: that.create }).then(function(dirHandle) {
-							loopDirs(i + 1, dirHandle);
-						}, function(err) {
-							reject(err);
-						});
+					that.localDirectoryHandle.getDirectoryHandle(that.dirs[i], { create: that.create }).then(function(dirHandle) {
+						loopDirs(i + 1, dirHandle);
+					}, function(err) {
+						reject(err);
 					});
 
 				}
@@ -102,27 +101,29 @@ class N3Directory {
 
 class N3StoreFileSystem extends N3StoreAbstract {
 
+	#notesFolder
 	#imagesFolder
 
-	constructor() {
+	constructor(directoryHandle) {
 		super();
 		this.#imagesFolder = "assets";
+		this.#notesFolder = "notes";
+		this.localDirectoryHandle = directoryHandle;
 	};
 
 
 	writeNodes(tree) {
+		let that = this;
 		return new Promise(function(resolve, reject) {
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
-					treeFileHandle.createWritable().then(function(writable) {
-						// Write the contents of the file to the stream.
-						let jsonString = JSON.stringify(tree || [], null, 2);
-						writable.write(jsonString).then(function() {
-							// Close the file and write the contents to disk.
-							writable.close().then(function() {
-								console.log("window.n3.store.writeNodes ready");
-								resolve();
-							});
+			that.localDirectoryHandle.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
+				treeFileHandle.createWritable().then(function(writable) {
+					// Write the contents of the file to the stream.
+					let jsonString = JSON.stringify(tree || [], null, 2);
+					writable.write(jsonString).then(function() {
+						// Close the file and write the contents to disk.
+						writable.close().then(function() {
+							console.log("window.n3.store.writeNodes ready");
+							resolve();
 						});
 					});
 				});
@@ -132,17 +133,15 @@ class N3StoreFileSystem extends N3StoreAbstract {
 
 	// TODO: refactor to remove tasks one by one
 	deleteTasks(nodeKey) {
-
+		let that = this;
 		return new Promise(function(resolve, reject) {
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getDirectoryHandle("tasks", { create: false }).then(function(tableDirHandle) {
-					tableDirHandle.removeEntry(nodeKey + ".json").then(function() {
-						console.log("N3Store.deleteTasks, for node key: " + nodeKey);
-						resolve();
-					}, function(error) {
-						// no NodeTasks file, ignore error
-						resolve();
-					});
+			that.localDirectoryHandle.getDirectoryHandle("tasks", { create: false }).then(function(tableDirHandle) {
+				tableDirHandle.removeEntry(nodeKey + ".json").then(function() {
+					console.log("N3Store.deleteTasks, for node key: " + nodeKey);
+					resolve();
+				}, function(error) {
+					// no NodeTasks file, ignore error
+					resolve();
 				});
 			});
 		});
@@ -150,16 +149,15 @@ class N3StoreFileSystem extends N3StoreAbstract {
 	}
 
 	writeTasks(params, tasksToSave) {
+		let that = this;
 		return new Promise(function(resolve, reject) {
 			let nodeKey = params.nodeKey;
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-					tableDirHandle.getFileHandle(nodeKey + ".json", { create: true }).then(function(tasksFileHandle) {
-						tasksFileHandle.createWritable().then(function(writable) {
-							writable.write(JSON.stringify(tasksToSave, null, 2)).then(function() {
-								writable.close().then(function() {
-									resolve();
-								});
+			that.localDirectoryHandle.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
+				tableDirHandle.getFileHandle(nodeKey + ".json", { create: true }).then(function(tasksFileHandle) {
+					tasksFileHandle.createWritable().then(function(writable) {
+						writable.write(JSON.stringify(tasksToSave, null, 2)).then(function() {
+							writable.close().then(function() {
+								resolve();
 							});
 						});
 					});
@@ -199,7 +197,7 @@ class N3StoreFileSystem extends N3StoreAbstract {
 		return new Promise(function(resolve, reject) {
 			let dirs = [that.#imagesFolder];
 
-			let n3Directory = new N3Directory(dirs, false);
+			let n3Directory = new N3Directory(that.localDirectoryHandle, dirs, false);
 			n3Directory.getHandle().then(function(dirHandle) {
 				dirHandle.getFileHandle(fileName).then(function(attachmentFileHandle) {
 					attachmentFileHandle.getFile().then(function(fileData) {
@@ -219,12 +217,10 @@ class N3StoreFileSystem extends N3StoreAbstract {
 	readNodes() {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
-					treeFileHandle.getFile().then(function(treeFile) {
-						treeFile.text().then(function(treeContents) {
-							resolve(treeContents);
-						});
+			that.localDirectoryHandle.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
+				treeFileHandle.getFile().then(function(treeFile) {
+					treeFile.text().then(function(treeContents) {
+						resolve(treeContents);
 					});
 				});
 			}).catch(function() {
@@ -238,73 +234,71 @@ class N3StoreFileSystem extends N3StoreAbstract {
 		let that = this;
 		let tasks = [];
 		return new Promise(function(resolve, reject) {
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-					let asyncIt = tableDirHandle.values();
-					let p = new Promise(function(resolvep) {
-						(function loopEntries() {
-							asyncIt.next().then(function(element) {
-								let taskFileHandle = element.value;
-								let done = element.done;
+			that.localDirectoryHandle.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
+				let asyncIt = tableDirHandle.values();
+				let p = new Promise(function(resolvep) {
+					(function loopEntries() {
+						asyncIt.next().then(function(element) {
+							let taskFileHandle = element.value;
+							let done = element.done;
 
-								if (done) {
-									resolvep();
-								} else {
+							if (done) {
+								resolvep();
+							} else {
 
-									taskFileHandle.getFile().then(function(taskFile) {
-										let taskFileName = taskFile.name;
-										taskFile.text().then(function(taskFileAsText) {
-											let taskAsJson = JSON.parse(taskFileAsText || "[]");
-											let nodeKey = taskFileName.replaceAll(".json", "");
-											taskAsJson.forEach(function(task) {
-												task["nodeKey"] = nodeKey;
-												task.tags = task.tags || [];
-												task.tags.forEach(function(tagToAdd) {
-													let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
-														return existingTag.value == tagToAdd.value
-													});
-													if (tagIndex == -1) {
-														window.n3.task.tagsList.push(tagToAdd);
-													}
+								taskFileHandle.getFile().then(function(taskFile) {
+									let taskFileName = taskFile.name;
+									taskFile.text().then(function(taskFileAsText) {
+										let taskAsJson = JSON.parse(taskFileAsText || "[]");
+										let nodeKey = taskFileName.replaceAll(".json", "");
+										taskAsJson.forEach(function(task) {
+											task["nodeKey"] = nodeKey;
+											task.tags = task.tags || [];
+											task.tags.forEach(function(tagToAdd) {
+												let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
+													return existingTag.value == tagToAdd.value
 												});
-												// TODO remove it migrate to status from done, archived
-												if (task.done) {
-													task.status = "DONE";
-												} else if (task.archived) {
-													task.status = "ARCHIVED";
-												} else if (!task.status) {
-													task.status = "TODO";
+												if (tagIndex == -1) {
+													window.n3.task.tagsList.push(tagToAdd);
 												}
-												delete task.done;
-												delete task.archived;
-
-												tasks.push(task);
-
-												// window.n3.search.index.add("taskId:" + task.id, task.title + " " + task.description);
-
-												window.n3.search.document.add({
-													id: task.id,
-													nodeKey: task.nodeKey,
-													type: "task",
-													title: task.title,
-													content: task.title + "  " + task.description
-												});
 											});
-											loopEntries();
+											// TODO remove it migrate to status from done, archived
+											if (task.done) {
+												task.status = "DONE";
+											} else if (task.archived) {
+												task.status = "ARCHIVED";
+											} else if (!task.status) {
+												task.status = "TODO";
+											}
+											delete task.done;
+											delete task.archived;
+
+											tasks.push(task);
+
+											// window.n3.search.index.add("taskId:" + task.id, task.title + " " + task.description);
+
+											window.n3.search.document.add({
+												id: task.id,
+												nodeKey: task.nodeKey,
+												type: "task",
+												title: task.title,
+												content: task.title + "  " + task.description
+											});
 										});
-
+										loopEntries();
 									});
-								}
-							});
 
-						})();
+								});
+							}
+						});
 
-					});
-					p.then(function() {
-						resolve(tasks);
-					});
+					})();
 
 				});
+				p.then(function() {
+					resolve(tasks);
+				});
+
 			});
 		});
 	}
