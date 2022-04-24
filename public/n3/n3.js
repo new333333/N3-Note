@@ -196,6 +196,8 @@ window.n3.search = window.n3.search || {};
 
 
 $(function() {
+	
+	let n3Store = new N3Store();
 
 	window.n3.search.index = new FlexSearch.Index({
 		tokenize: "forward"
@@ -214,12 +216,11 @@ $(function() {
 
 	window.n3.action.handlers["refresh-tasks"] = window.n3.refreshNodeTasksFilter;
 	window.n3.action.handlers["activate-node"] = window.n3.action.activateNode;
-	window.n3.action.handlers["searchresults-activate-node"] = window.n3.action.activateNodeFromSaecrhResults;
+	window.n3.action.handlers["searchresults-activate-node"] = window.n3.action.activateNodeFromSearchResults;
 	window.n3.action.handlers["searchresults-open-task"] = window.n3.action.openTaskDetailsFromSaecrhResults;
 	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.choose;
 	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
 	window.n3.action.handlers["add-node"] = window.n3.node.add;
-	window.n3.action.handlers["save-node"] = window.n3.node.save;
 	window.n3.action.handlers["add-task"] = window.n3.task.add;
 	window.n3.action.handlers["dalete-task-confirm"] = window.n3.task.delete;
 	window.n3.action.handlers["delete-node-confirm"] = window.n3.node.delete;
@@ -273,26 +274,63 @@ $(function() {
 			nodeKey = $nodeDataOwner.dataset.nodekey;
 		}
 		if (nodeKey) {
-			window.n3.node.save(nodeKey, undefined, this);
+			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
+		
+			let newTitle = $(this).val();
+			if (node.title != newTitle) {
+				node.setTitle(newTitle);
+				window.n3.events.triggerEvent("nodeModified", {
+					key: nodeKey,
+					fields: ["title"],
+					operation: "modify"
+				});
+			}
 		}
 	});
 
-	window.n3.events.addListener("nodeModified", window.n3.store.writeNodes);
+	window.n3.events.addListener("nodeModified", function(obj) {
+		let modifiedNodeKey = obj.key;
+		let operation = obj.operation; // modify, add, move
+		let fields = obj.fields; // description, title
+		return new Promise(function(resolve) {
+			let fancyTree = $.ui.fancytree.getTree("[data-tree]");
+			let tree = fancyTree.toDict(true);
+			n3Store.saveNodes(tree).then(function() {
+				resolve();
+			});
+		});
+	});
+	
+	window.n3.events.addListener("nodeDeleted", function(obj) {
+		let modifiedNodeKey = obj.key;
+		return new Promise(function(resolve) {
+			let fancyTree = $.ui.fancytree.getTree("[data-tree]");
+			let tree = fancyTree.toDict(true);
+			n3Store.saveNodes(tree).then(function() {
+				n3Store.deleteTasks(modifiedNodeKey).then(function() {
+					resolve();
+				});
+			});
+		});
+	});
+	
 	window.n3.events.addListener("taskModified", window.n3.store.writeNodeTasks);
 	window.addEventListener("beforeunload", function(event) {
 		let $nodeDataOwner = $("[data-owner='node']");
 		let nodeKey = $nodeDataOwner[0].dataset.nodekey;
-
+		// TODO: check if title or description is dirty first...
 		window.n3.events.triggerEvent("nodeModified", {
-			key: nodeKey
+			key: nodeKey,
+			operation: "modify"
 		});
 	});
 	window.addEventListener("unload", function(event) {
 		let $nodeDataOwner = $("[data-owner='node']");
 		let nodeKey = $nodeDataOwner[0].dataset.nodekey;
-
+		// TODO: check if title or description is dirty first...
 		window.n3.events.triggerEvent("nodeModified", {
-			key: nodeKey
+			key: nodeKey,
+			operation: "modify"
 		});
 	});
 	
@@ -352,29 +390,6 @@ window.n3.ui.initTaskTab = function() {
 	$("[data-statusfilter]").html(html);
 }
 
-window.n3.node.save = function(nodeKey, taskId, $trigger) {
-	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
-	let modified = false;
-
-	let form = $("[data-noteeditor]");
-
-	let newTitle = $("[name='title']", form).val();
-	if (node.title != newTitle) {
-		node.setTitle(newTitle);
-		modified = true;
-	}
-	window.n3.node.getNodeHTMLEditor(form).then(function(editor) {
-		if (editor.isDirty()) {
-			node.data.description = editor.getContent();
-			modified = true;
-		}
-		if (modified) {
-			window.n3.events.triggerEvent("nodeModified", {
-				key: nodeKey
-			});
-		}
-	});
-}
 
 window.n3.task.add = function(nodeKey, taskId, $trigger) {
 	window.n3.modal.openTaskDetails({ nodeKey: nodeKey });
@@ -395,7 +410,7 @@ window.n3.action.closeDialog = function(nodeKey, taskId, $trigger) {
 	window.n3.modal.close($modal, true);
 }
 
-window.n3.action.activateNodeFromSaecrhResults = function(nodeKey, taskId, $trigger) {
+window.n3.action.activateNodeFromSearchResults = function(nodeKey, taskId, $trigger) {
 	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 	node.setActive();
 	window.n3.action.closeDialog(nodeKey, taskId, $trigger);
@@ -490,161 +505,41 @@ window.n3.node.delete = function(nodeKey, taskId, $trigger) {
 		return;
 	}
 	let parentNode = node.parent;
-	// console.log("delete node, parentNode ", node, parentNode);
 
-	let collectNodesKeysToDelete = [node.key];
 	node.visit(function(node) {
-		collectNodesKeysToDelete.unshift(node.key);
+		
+		let taskIndexToRemove = -1;
+		do {
+			taskIndexToRemove = window.n3.tasks.findIndex(function(task) {
+				return task.nodeKey == node.key
+			});
+			if (taskIndexToRemove > -1) {
+				window.n3.tasks.splice(taskIndexToRemove, 1);
+			}
+		} while (taskIndexToRemove > -1);
+			
+			
+		window.n3.events.triggerEvent("nodeDeleted", {
+			key: node.key
+		});
+		
 	});
 
-	window.n3.store.deleteAllNodesTasks(collectNodesKeysToDelete).then(function() {
-		let removedNodeKey = node.key;
-		node.remove();
-		window.n3.events.triggerEvent("nodeModified", {
-			key: removedNodeKey
-		});
-		if (parentNode.title != "root") {
-			parentNode.setActive();
-		} else if (parentNode.children && parentNode.children.length > 0) {
-			parentNode.children[0].setActive();
-		}
+	let removedNodeKey = node.key;
+	node.remove();
+	window.n3.events.triggerEvent("nodeDeleted", {
+		key: removedNodeKey
 	});
+	
+	if (parentNode.title != "root") {
+		parentNode.setActive();
+	} else if (parentNode.children && parentNode.children.length > 0) {
+		parentNode.children[0].setActive();
+	}
+	
+	return true;
 };
-
-
-window.n3.store.loadImages = function(htmlTex) {
-
-
-	return new Promise(function(resolve) {
-
-		let $imagesHiddenContainer = $("<div />");
-		$imagesHiddenContainer.html(htmlTex);
-
-		let imgs = $("img", $imagesHiddenContainer);
-
-		(function loopImages(i) {
-
-			if (i >= imgs.length) {
-				let htmlWithImages = $imagesHiddenContainer.html();
-				resolve(htmlWithImages || "");
-			} else {
-				let nextImg = imgs[i];
-
-				if (!nextImg.dataset.n3src) {
-					loopImages(i + 1);
-				} else {
-
-					let filePath = nextImg.dataset.n3src;
-
-					let dirs = filePath.split("/");
-					let fileName = dirs.pop();
-
-					window.n3.store.getDirectoryHandle(dirs, false).then(function(dirHandle) {
-						dirHandle.getFileHandle(fileName).then(function(attachmentFileHandle) {
-							attachmentFileHandle.getFile().then(function(fileData) {
-
-								let reader = new FileReader();
-								reader.addEventListener("load", function() {
-									nextImg.src = reader.result;
-									loopImages(i + 1);
-								}, false);
-								reader.readAsDataURL(fileData);
-
-							});
-						});
-					});
-
-				}
-			}
-		})(0);
-	});
-}
-
-window.n3.store.writeAttachment = function(filePath, blobFile) {
-	return new Promise(function(resolve) {
-
-		let dirs = filePath.split("/");
-		let fileName = dirs.pop();
-
-		window.n3.store.getDirectoryHandle(dirs, true).then(function(dirHandle) {
-			if (dirHandle) {
-				dirHandle.getFileHandle(fileName, { create: true }).then(function(fileHandle) {
-					fileHandle.createWritable().then(function(writable) {
-						writable.write(blobFile).then(function() {
-							writable.close().then(function() {
-								resolve(true);
-							}, function(err) {
-								// no file
-								resolve(false);
-							});
-						}, function(err) {
-							// no file
-							resolve(false);
-						});
-					}, function(err) {
-						// no file
-						resolve(false);
-					});
-				}, function(err) {
-					// no file
-					resolve(false);
-				});
-			} else {
-				// no one of dirs
-				resolve(false);
-			}
-		});
-
-	});
-}
-
-window.n3.store.getDirectoryHandle = function(dirs, create) {
-	return new Promise(function(resolve) {
-
-		(function loopDirs(i, dirHandle) {
-
-			if (i >= dirs.length) {
-				resolve(dirHandle);
-			} else {
-
-				window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-					localFolder.getDirectoryHandle(dirs[i], { create: create }).then(function(dirHandle) {
-						loopDirs(i + 1, dirHandle);
-					}, function(err) {
-						resolve(false);
-					});
-				});
-
-			}
-		})(0, false);
-
-	});
-}
-
-
-window.n3.store.fileExist = function(filePath) {
-	return new Promise(function(resolve) {
-
-		let dirs = filePath.split("/");
-		let fileName = dirs.pop();
-
-		window.n3.store.getDirectoryHandle(dirs, false).then(function(dirHandle) {
-			if (dirHandle) {
-				dirHandle.getFileHandle(fileName, { create: false }).then(function(fileHandle) {
-					resolve(true);
-				}, function(err) {
-					// no file
-					resolve(false);
-				});
-			} else {
-				// no one of dirs
-				resolve(false);
-			}
-		});
-
-	});
-}
-
+	
 
 window.n3.events.addListener = function(eventName, fn) {
 	if (!window.n3.events.listeners[eventName]) {
@@ -873,67 +768,19 @@ window.n3.node.add = function() {
 		newNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(newNode.key);
 		// modifyChild is not trigged, so call manually save
 		window.n3.events.triggerEvent("nodeModified", {
-			key: newNode.key
+			key: newNode.key,
+			operation: "add"
 		});
 	} else {
 		newNode = node.addNode(newNode, "child");
 	}
 	newNode.setActive();
 	window.n3.events.triggerEvent("nodeModified", {
-		key: newNode.key
+		key: newNode.key,
+		operation: "add"
 	});
 }
 
-window.n3.store.deleteAllNodesTasks = function(nodesKey) {
-
-	return new Promise(function(resolve) {
-
-		(function loopNodesKey(i) {
-
-			if (i >= nodesKey.length) {
-				resolve();
-			} else {
-
-				window.n3.store.removeAllNodeTasks(nodesKey[i]).then(function() {
-
-					let taskIndexToRemove = window.n3.tasks.findIndex(function(task) {
-						return task.nodeKey == nodesKey[i]
-					});
-					while (taskIndexToRemove > -1) {
-						window.n3.tasks.splice(taskIndexToRemove, 1);
-						taskIndexToRemove = window.n3.tasks.findIndex(function(task) {
-							return task.nodeKey == nodesKey[i]
-						});
-					}
-					loopNodesKey(i + 1)
-				});
-			}
-		})(0);
-	});
-}
-
-
-// do we need this method? how to do it better??
-// save all tasks, but:
-// 1. save only modifed tasks lists
-// 2. remove all empty task lists...
-window.n3.store.removeAllNodeTasks = function(nodeKey) {
-
-	return new Promise(function(resolve) {
-		window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-			localFolder.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-				tableDirHandle.removeEntry(nodeKey + ".json").then(function() {
-					console.log("window.n3.store.removeAllNodeTasks, for node key: " + nodeKey);
-					resolve();
-				}, function(err) {
-					// no NodeTasks file, ignore
-					resolve();
-				});
-			});
-		});
-	});
-
-}
 
 window.n3.store.extractImages = function(htmltext) {
 
@@ -963,20 +810,23 @@ window.n3.store.extractImages = function(htmltext) {
 
 					fetch(nextImg.src).then(function(base64Response) {
 						base64Response.blob().then(function(blob) {
+							
+							let n3File = new N3File(filePath);
 
-							window.n3.store.fileExist(filePath).then(function(fileExists) {
-								if (fileExists) {
+							n3File.exists().then(function(exists) {
+								if (exists) {
 									nextImg.src = "";
 									loopImages(i + 1);
 								} else {
 
-									window.n3.store.writeAttachment(filePath, blob).then(function(isFileSaved) {
-										if (isFileSaved) {
-											nextImg.src = "";
-										}
+									let n3Blob = new N3Blob(blob);
+									n3Blob.save(filePath).then(function() {
+										nextImg.src = "";
 										loopImages(i + 1);
+									}).catch(function(error) {
+										console.log(error);
+										loopImages(i + 1);	
 									});
-
 								}
 							});
 
@@ -1059,32 +909,6 @@ window.n3.store.extractTasksImages = function(tasks) {
 	});
 }
 
-window.n3.store.writeNodes = function() {
-
-	return new Promise(function(resolve) {
-
-		let fancyTree = $.ui.fancytree.getTree("[data-tree]");
-		let nodesTree = fancyTree.toDict(true);
-
-		window.n3.store.extractNodesImages(nodesTree.children).then(function(nodeTreeUpdated) {
-			window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-				localFolder.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
-					treeFileHandle.createWritable().then(function(writable) {
-						// Write the contents of the file to the stream.
-						let jsonString = JSON.stringify(nodeTreeUpdated || [], null, 2);
-						writable.write(jsonString).then(function() {
-							// Close the file and write the contents to disk.
-							writable.close().then(function() {
-								console.log("window.n3.store.writeNodes ready");
-								resolve();
-							});
-						});
-					});
-				});
-			});
-		});
-	});
-}
 
 window.n3.store.writeNodeTasks = function(params) {
 
@@ -1121,7 +945,7 @@ window.n3.store.writeNodeTasks = function(params) {
 							});
 
 						} else {
-							window.n3.store.removeAllNodeTasks(nodeKey).then(function() {
+							n3Store.deleteTasks(nodeKey).then(function() {
 								resolve();
 							});
 						}
@@ -1146,7 +970,8 @@ window.n3.node.activateNode = function(node) {
 
 		$("[name='title']", form).val(node.title);
 		var description = ((node || {}).data || {}).description || "";
-		window.n3.store.loadImages(description).then(function(htmlText) {
+		let n3Description = new N3Description(description);
+		n3Description.loadImages(description).then(function(htmlText) {
 			window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
 				htmlEditor.setContent(htmlText);
 				htmlEditor.setDirty(false);
@@ -1735,7 +1560,9 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 						let currentNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(nodeKey);
 						currentNode.data.description = editor.getContent();
 						window.n3.events.triggerEvent("nodeModified", {
-							key: currentNode.key
+							key: currentNode.key,
+							operation: "modify",
+							field: ["description"]
 						});
 						editor.setDirty(false);
 					}
@@ -2021,7 +1848,8 @@ window.n3.modal.onOpenTaskDetails = function(nodeKey, taskId, targetElement) {
 			window.n3.task.getStatusEditor(form, task.status);
 			$("[name='duration']", form).val(task.duration || "");
 		
-			window.n3.store.loadImages((task || {}).description || "").then(function(htmlText) {
+			let n3Description = new N3Description((task || {}).description || "");
+			n3Description.loadImages().then(function(htmlText) {
 				window.n3.task.getTaskHTMLEditor(form).then(function(htmlEditor) {
 					htmlEditor.setContent(htmlText);
 					htmlEditor.setDirty(false);
@@ -2084,7 +1912,8 @@ window.n3.task.save = function(nodeKey, taskId, $trigger) {
 			let newNode = window.n3.node.getNewNodeData();
 			node = node.addNode(newNode, "child");
 			window.n3.events.triggerEvent("nodeModified", {
-				key: node.key
+				key: node.key,
+				operation: "add"
 			});
 		}
 
@@ -2162,9 +1991,9 @@ window.n3.initFancyTree = function(tree) {
 
 	/* Log if value changed, nor more than interval/sec.*/
 	function logLazy(name, value, interval, msg) {
-		if (!lazyLogCache[name]) { lazyLogCache[name] = { stamp: now } };
-		let now = Date.now(),
+		/*let now = Date.now(),
 			entry = lazyLogCache[name];
+		if (!lazyLogCache[name]) { lazyLogCache[name] = { stamp: now } };
 
 		if (value && value === entry.value) {
 			return;
@@ -2175,7 +2004,7 @@ window.n3.initFancyTree = function(tree) {
 			return;
 		}
 		entry.stamp = now;
-		lazyLogCache[name] = entry;
+		lazyLogCache[name] = entry;*/
 		// console.log(msg);
 	}
 	let ff = $("[data-tree]").fancytree({
@@ -2195,26 +2024,30 @@ window.n3.initFancyTree = function(tree) {
 			close: $.noop,        // Editor was removed
 		},
 		init: function(event, data) {
-			if (data.tree.rootNode.children.length > 0) {
+			/*if (data.tree.rootNode.children.length > 0) {
 				$(".n3-app").removeClass("n3-no-nodes");
 			} else {
 				$(".n3-app").addClass("n3-no-nodes");
-			}
+			}*/
+			
 			if (data.tree.rootNode.children.length > 0) {
 				data.tree.activateKey(data.tree.rootNode.children[0].key);
+			} else {
+				$(".n3-app").addClass("n3-no-nodes");
 			}
 		},
 		modifyChild: function(event, data) {
 			// bei remove - data.tree.rootNode.children is not yet actuall
 			if (data.operation == "remove" && data.node.title == "root") {
 				$(".n3-app").addClass("n3-no-nodes");
-			} else if (data.operation != "remove" && data.tree.rootNode.children.length > 0) {
+			}/* else if (data.operation != "remove" && data.tree.rootNode.children.length > 0) {
 				// on add new node, when there is no statusNodeType !== "nodata" node
 				$(".n3-app").removeClass("n3-no-nodes");
-			}
+			}*/
 		},
 		// --- Node events -------------------------------------------------			
 		activate: function(event, data) {
+			$(".n3-app").removeClass("n3-no-nodes");
 			if (data.node.key !== "_1") {
 				window.n3.node.activateNode(data.node).then(function() { });
 			} else {
@@ -2388,7 +2221,8 @@ window.n3.initFancyTree = function(tree) {
 				}
 				node.setExpanded();
 				window.n3.events.triggerEvent("nodeModified", {
-					key: node.key
+					key: node.key,
+					operation: "move"
 				});
 			},
 		}
