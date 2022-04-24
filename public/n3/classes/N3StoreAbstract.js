@@ -17,6 +17,44 @@ class N3StoreAbstract {
 	};
 
 
+	loadTree = function() {
+		var that = this;
+		return new Promise(function(resolve, reject) {
+			that.readTree().then(function(treeContents) {
+				let tree = false;
+				if (treeContents) {
+					tree = JSON.parse(treeContents);
+					
+					addTreeToSearchIndex(tree);
+					
+					function addTreeToSearchIndex(tree) {
+						if (!tree) {
+							return;
+						}
+						tree.forEach(function(node) {
+							// window.n3.search.index.add("nodeKey:" + node.key, node.title + " " + node.data.description);
+							
+							window.n3.search.document.add({
+								id: node.key,
+								type: "note",
+								title: node.title,
+								content: node.title + " " + node.data.description
+							});		
+							
+							addTreeToSearchIndex(node.children);					
+						});
+					}
+					
+				}
+
+				resolve(tree);
+			}).catch(function(error) {
+				reject(error);
+			});
+	
+		});
+	}
+
 	// TODO: remove it after erfactoring - store every node separatly
 	saveNodes(tree) {
 		var that = this;
@@ -70,6 +108,7 @@ class N3StoreAbstract {
 	
 
 	#extractTasksImages(tasks) {
+		var that = this;
 		return new Promise(function(resolve) {
 	
 			if (!tasks || tasks.length == 0) {
@@ -220,6 +259,32 @@ class N3StoreAbstract {
 					}
 				}
 			})(0);
+		});
+	}
+
+	
+	loadTasks() {
+		var that = this;
+		return new Promise(function(resolve, reject) {
+			
+			that.readTasks().then(function(tasks) {
+				resolve(tasks);
+			}).catch(function(error) {
+				reject(error);
+			});
+			
+		});
+	};
+	
+	loadData() {
+		var that = this;
+		return new Promise(function(resolve) {
+			that.loadTree().then(function(tree) {
+				that.loadTasks().then(function(tasks) {
+					resolve({tree:tree, tasks: tasks});
+				});
+	
+			});
 		});
 	}
 

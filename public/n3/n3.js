@@ -684,10 +684,15 @@ window.n3.localFolder.queryVerifyPermission = function() {
 
 					window.n3.modal.closeAll(true);
 
-					window.n3.store.readAllData().then(function(tree) {
+					n3Store.loadData().then(function(data) {
 						$(".n3-no-localfolder").removeClass("n3-no-localfolder");
 						window.n3.initTaskTable();
-						window.n3.initFancyTree(tree);
+						window.n3.initFancyTree(data.tree);
+						
+						var tasks = data.tasks;
+						
+						window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
+						
 						resolve(true);
 					});
 
@@ -973,146 +978,7 @@ window.n3.node.getNodeTitlePath = function(node, noLinks) {
 	return breadCrumbs;
 }
 
-window.n3.store.readTreeData = function() {
 
-	return new Promise(function(resolve) {
-
-		window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-			localFolder.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
-				treeFileHandle.getFile().then(function(treeFile) {
-					treeFile.text().then(function(treeContents) {
-						let tree = false;
-						if (treeContents) {
-							tree = JSON.parse(treeContents);
-							
-							addTreeToSearchIndex(tree);
-							
-							function addTreeToSearchIndex(tree) {
-								if (!tree) {
-									return;
-								}
-								tree.forEach(function(node) {
-									// window.n3.search.index.add("nodeKey:" + node.key, node.title + " " + node.data.description);
-									
-									window.n3.search.document.add({
-										id: node.key,
-										type: "note",
-										title: node.title,
-										content: node.title + " " + node.data.description
-									});		
-									
-									addTreeToSearchIndex(node.children);					
-								});
-							}
-							
-						}
-						
-
-						resolve(tree);
-					});
-				});
-			});
-		});
-
-	});
-}
-
-
-window.n3.store.readTasksData = function(tasks) {
-
-	return new Promise(function(resolve) {
-
-		window.n3.localFolder.getDirectoryHandle().then(function(localFolder) {
-
-			localFolder.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-
-				let asyncIt = tableDirHandle.values();
-
-				let p = new Promise(function(resolvep) {
-
-					(function loopEntries() {
-
-						asyncIt.next().then(function(element) {
-
-							let taskFileHandle = element.value;
-							let done = element.done;
-
-							if (done) {
-								resolvep();
-							} else {
-
-								taskFileHandle.getFile().then(function(taskFile) {
-									let taskFileName = taskFile.name;
-									taskFile.text().then(function(taskFileAsText) {
-										let taskAsJson = JSON.parse(taskFileAsText || "[]");
-										let nodeKey = taskFileName.replaceAll(".json", "");
-										taskAsJson.forEach(function(task) {
-											task["nodeKey"] = nodeKey;
-											task.tags = task.tags || [];
-											task.tags.forEach(function(tagToAdd) {
-												let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
-													return existingTag.value == tagToAdd.value
-												});
-												if (tagIndex == -1) {
-													window.n3.task.tagsList.push(tagToAdd);
-												}
-											});
-											// TODO remove it migrate to status from done, archived
-											if (task.done) {
-												task.status = "DONE";
-											} else if (task.archived) {
-												task.status = "ARCHIVED";
-											} else if (!task.status) {
-												task.status = "TODO";
-											}
-											delete task.done;
-											delete task.archived;
-
-											tasks.push(task);
-											
-											// window.n3.search.index.add("taskId:" + task.id, task.title + " " + task.description);
-											
-											window.n3.search.document.add({
-												id: task.id,
-												nodeKey: task.nodeKey,
-												type: "task",
-												title: task.title,
-												content: task.title + "  " + task.description
-											});							
-										});
-										loopEntries();
-									});
-
-								});
-							}
-						});
-
-					})();
-
-				});
-				p.then(function() {
-					resolve();
-				});
-
-			});
-		});
-	});
-};
-
-
-window.n3.store.readAllData = function() {
-
-	return new Promise(function(resolve) {
-
-		window.n3.store.readTreeData().then(function(tree) {
-
-			window.n3.store.readTasksData(window.n3.tasks).then(function() {
-				resolve(tree);
-			});
-
-		});
-	});
-}
 
 window.n3.initTaskTable = function() {
 
