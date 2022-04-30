@@ -173,3 +173,11 @@ body {
 	font-size: 10px;
 }
 
+[data-flex-splitter-horizontal]>[role=separator]::before {
+    width: 0;
+    margin: 0;
+    height: 0;
+    border: 0;
+}
+
+
