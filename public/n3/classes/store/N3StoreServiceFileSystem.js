@@ -1,299 +1,3 @@
-class N3File {
-
-	constructor(directoryHandle, path) {
-		this.directoryHandle = directoryHandle;
-		this.path = path;
-	};
-
-	getHandle(create) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			if (that.fileHandle) {
-				return resolve(that.fileHandle);
-			}
-
-			let dirs = that.path.split("/");
-			let fileName = dirs.pop();
-
-			let n3Directory = new N3Directory(that.directoryHandle, dirs);
-			n3Directory.getHandle(create).then(function(dirHandle) {
-				dirHandle.getFileHandle(fileName, { create: create }).then(function(fileHandle) {
-					that.fileHandle = fileHandle;
-					resolve(fileHandle);
-				}).catch(function(error) {
-					reject(error);
-				});
-			}).catch(function(error) {
-				reject(error);
-			});
-		});
-	}
-
-	exists() {
-		let that = this;
-		return new Promise(function(resolve) {
-
-			let dirs = that.path.split("/");
-			let fileName = dirs.pop();
-
-			let n3Directory = new N3Directory(that.directoryHandle, dirs);
-			n3Directory.getHandle(false).then(function(dirHandle) {
-				dirHandle.getFileHandle(fileName, { create: false }).then(function(fileHandle) {
-					resolve(true);
-				}).catch(function(error) {
-					resolve(false);
-				});
-			}).catch(function(error) {
-				resolve(false);
-			});
-		});
-	}
-
-	text() {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			that.getHandle(false).then(function(fileHandle) {
-				fileHandle.getFile().then(function(file) {
-					file.text().then(function(fileContent) {
-						resolve(fileContent);
-					}).catch(function(error) {
-						reject(error);
-					});
-				}).catch(function(error) {
-					reject(error);
-				});
-			}).catch(function(error) {
-				reject(error);
-			});
-		});
-	}
-
-	textOrFalse() {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			that.getHandle(false).then(function(fileHandle) {
-				fileHandle.getFile().then(function(file) {
-					file.text().then(function(fileContent) {
-						resolve(fileContent);
-					}).catch(function(error) {
-						resolve(false);
-					});
-				}).catch(function(error) {
-					resolve(false);
-				});
-			}).catch(function(error) {
-				resolve(false);
-			});
-		});
-	}
-
-	write(text) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			that.getHandle(true).then(function(fileHandle) {
-				fileHandle.createWritable().then(function(writable) {
-					writable.write(text).then(function() {
-						writable.close().then(function() {
-							resolve();
-						}).catch(function(err) {
-							reject(err);
-						});
-					}).catch(function(err) {
-						reject(err);
-					});
-				}).catch(function(err) {
-					reject(err);
-				});
-			}).catch(function(error) {
-				reject(error);
-			});
-		});
-	}
-
-}
-
-class N3Blob {
-
-	constructor(directoryHandle, blob) {
-		this.blob = blob;
-		this.directoryHandle = directoryHandle;
-	};
-
-	save(path) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			let n3File = new N3File(that.directoryHandle, path);
-			n3File.getHandle(true).then(function(fileHandle) {
-				fileHandle.createWritable().then(function(writable) {
-					writable.write(that.blob).then(function() {
-						writable.close().then(function() {
-							resolve();
-						}).catch(function(err) {
-							reject(err);
-						});
-					}).catch(function(err) {
-						reject(err);
-					});
-				}).catch(function(err) {
-					reject(err);
-				});
-			}).catch(function(err) {
-				reject(err);
-			});
-		});
-	}
-}
-
-
-class N3Directory {
-
-	constructor(directoryHandle, dirs) {
-		this.dirs = dirs || [];
-		this.directoryHandle = directoryHandle;
-	};
-
-	getHandle(create) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			(function loopDirs(i, dirHandle) {
-
-				if (i >= that.dirs.length) {
-					resolve(dirHandle);
-				} else {
-
-					dirHandle.getDirectoryHandle(that.dirs[i], { create: create }).then(function(dirHandle) {
-						loopDirs(i + 1, dirHandle);
-					}).catch(function(err) {
-						reject(err);
-					});
-
-				}
-			})(0, that.directoryHandle);
-
-		});
-	}
-
-	/*/data/notes/7248cee1-958e-4d4f-b680-ee3085dffa0d -> /data/notes/
-	/data/notes/a1234/tasks -> /data/notes/a1234*/
-
-
-	#copyFolderTo(dirHandle, targetFolderHandle) {
-		// dirHandle
-		// 		kind: "directory"
-		// 		name: "7248cee1-958e-4d4f-b680-ee3085dffa0d"
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			targetFolderHandle.getDirectoryHandle(dirHandle.name, { create: true }).then(function(createdCopyOfFolderHandle) {
-
-				let asyncIt = dirHandle.values();
-				let p = new Promise(function(resolvep, rejectp) {
-					(function loopEntries() {
-						asyncIt.next().then(function(element) {
-							// kind: "file"
-							// name: "data.json"
-
-							// kind: "directory"
-							// name: "tasks"
-
-							let done = element.done;
-
-							if (done) {
-
-								resolvep();
-
-							} else {
-
-								let kind = element.value.kind;
-								let name = element.value.name;
-
-								if (kind == "directory") {
-
-									dirHandle.getDirectoryHandle(name, { create: false }).then(function(nextFolderHandle) {
-										that.#copyFolderTo(nextFolderHandle, createdCopyOfFolderHandle).then(function() {
-											loopEntries();
-										}).catch(function(err) {
-											rejectp(err);
-										});
-									}).catch(function(err) {
-										rejectp(err);
-									});
-
-								} else {
-									dirHandle.getFileHandle(name, { create: false }).then(function(fileHandle) {
-										fileHandle.getFile().then(function(file) {
-											file.text().then(function(fileContent) {
-												createdCopyOfFolderHandle.getFileHandle(name, { create: true }).then(function(targetFileHandle) {
-													targetFileHandle.createWritable().then(function(writable) {
-														writable.write(fileContent).then(function() {
-															writable.close().then(function() {
-																loopEntries();
-															}).catch(function(err) {
-																rejectp(err);
-															});
-														}).catch(function(err) {
-															rejectp(err);
-														});
-													}).catch(function(err) {
-														rejectp(err);
-													});
-												}).catch(function(err) {
-													rejectp(err);
-												});
-											}).catch(function(err) {
-												rejectp(err);
-											});
-										}).catch(function(err) {
-											rejectp(err);
-										});
-									}).catch(function(err) {
-										rejectp(err);
-									});
-
-								}
-							}
-						});
-
-					})();
-
-				});
-				p.then(function() {
-					resolve();
-				}).catch(function(err) {
-					reject(err);
-				});
-			}).catch(function(err) {
-				reject(err);
-			});
-		});
-
-	}
-
-
-	copyTo(targetDirectory) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			that.getHandle(false).then(function(dirHandle) {
-				targetDirectory.getHandle(true).then(function(targetDirHandle) {
-					that.#copyFolderTo(dirHandle, targetDirHandle).then(function() {
-						resolve();
-					}).catch(function(err) {
-						reject(err);
-					});
-				}).catch(function(err) {
-					reject(err);
-				});
-			}).catch(function(err) {
-				reject(err);
-			});
-		});
-	}
-}
-
 // TODO: cache read data to prevent disc access?
 class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
@@ -315,8 +19,8 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	#taskTitleFileName
 	#taskDescriptionFileName
 
-	constructor(directoryHandle) {
-		super();
+	constructor(directoryHandle, searchService) {
+		super(searchService);
 		this.directoryHandle = directoryHandle;
 
 		this.#imagesFolderName = "assets";
@@ -341,7 +45,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	#writeNoteData(noteFolderHandle, note) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-			let noteDataFileFile = new N3File(noteFolderHandle, that.#noteDataFileName + ".json");
+			let noteDataFileFile = new N3File(noteFolderHandle, [that.#noteDataFileName + ".json"]);
 
 			let noteData = Object.assign({}, note.data);
 			delete noteData.description;
@@ -359,7 +63,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	#writeTaskData(taskFolderHandle, task) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-			let taskDataFile = new N3File(taskFolderHandle, that.#taskDataFileName + ".json");
+			let taskDataFile = new N3File(taskFolderHandle, [that.#taskDataFileName + ".json"]);
 
 			let taskData = Object.assign({}, task);
 			delete taskData.description;
@@ -375,12 +79,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		});
 	}
-	
+
 	#readTaskData(taskFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let taskDataFile = new N3File(taskFolderHandle, that.#taskDataFileName + ".json");
+			let taskDataFile = new N3File(taskFolderHandle, [that.#taskDataFileName + ".json"]);
 			taskDataFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -391,12 +95,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		});
 
-	}	
+	}
 
 	#writeNoteExpand(noteFolderHandle, key, expanded) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-			let noteDataFileFile = new N3File(noteFolderHandle, that.#noteExpandedFileName + ".json");
+			let noteDataFileFile = new N3File(noteFolderHandle, [that.#noteExpandedFileName + ".json"]);
 			noteDataFileFile.write(JSON.stringify({ expanded: expanded }, null, 2)).then(function(data) {
 				resolve(data);
 			}).catch(function(err) {
@@ -406,11 +110,11 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 	}
 
-	#readNoteExpand(key, notesFolderHandle) {
+	#readNoteExpand(notesFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, key + "/" + that.#noteExpandedFileName + ".json");
+			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteExpandedFileName + ".json"]);
 			noteDataFileFile.textOrFalse().then(function(data) {
 				data = data || "{\"expanded\": false}";
 				data = JSON.parse(data);
@@ -423,11 +127,11 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 	}
 
-	#readNoteData(key, notesFolderHandle) {
+	#readNoteData(notesFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, key + "/" + that.#noteDataFileName + ".json");
+			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteDataFileName + ".json"]);
 			noteDataFileFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -439,12 +143,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 
 	}
-	
-	#readNoteTitle(key, notesFolderHandle) {
+
+	#readNoteTitle(notesFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, key + "/" + that.#noteTitleFileName + ".json");
+			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteTitleFileName + ".json"]);
 			noteDataFileFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -455,12 +159,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		});
 	}
-	
-	#readNoteDesription(key, notesFolderHandle) {
+
+	#readNoteDesription(notesFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, key + "/" + that.#noteDescriptionFileName + ".json");
+			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteDescriptionFileName + ".json"]);
 			noteDataFileFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -471,15 +175,15 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		});
 	}
-	
+
 
 	#writeNoteTitle(dirHandle, note) {
 		var that = this;
-		let noteTitleFile = new N3File(dirHandle, that.#noteTitleFileName + ".json");
+		let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
 		return noteTitleFile.text().then(function(text) {
 			let oldTitle = JSON.parse(text);
 			let timeStampAsTime = JSJoda.Instant.parse(oldTitle.timeStamp).epochSecond();
-			let prevNoteTitleFile = new N3File(dirHandle, that.#noteTitleFileName + "." + timeStampAsTime + ".json");
+			let prevNoteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + "." + timeStampAsTime + ".json"]);
 			return prevNoteTitleFile.write(JSON.stringify(oldTitle, null, 2));
 		}).then(function() {
 			let title = {
@@ -493,7 +197,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				title: note.title,
 				timeStamp: JSJoda.Instant.now().toString()
 			};
-			let noteTitleFile = new N3File(dirHandle, that.#noteTitleFileName + ".json");
+			let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
 			return noteTitleFile.write(JSON.stringify(title, null, 2));
 		});
 
@@ -506,11 +210,11 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 			note.data.description = "";
 		}
 
-		let noteDescriptionFile = new N3File(dirHandle, that.#noteDescriptionFileName + ".json");
+		let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
 		return noteDescriptionFile.text().then(function(text) {
 			let oldDescription = JSON.parse(text);
 			let timeStampAsTime = JSJoda.Instant.parse(oldDescription.timeStamp).epochSecond();
-			let prevNoteDescriptionFile = new N3File(dirHandle, that.#noteDescriptionFileName + "." + timeStampAsTime + ".json");
+			let prevNoteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + "." + timeStampAsTime + ".json"]);
 			return prevNoteDescriptionFile.write(JSON.stringify(oldDescription, null, 2));
 		}).then(function() {
 			let description = {
@@ -524,18 +228,16 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				description: note.data.description,
 				timeStamp: JSJoda.Instant.now().toString()
 			};
-			let noteDescriptionFile = new N3File(dirHandle, that.#noteDescriptionFileName + ".json");
+			let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
 			return noteDescriptionFile.write(JSON.stringify(description, null, 2));
 		});
 
 	}
 
-	#readNoteChildrenFile(key, folderHandleToReadChildrenFrom) {
+	#readNoteChildrenFile(folderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-
-
-			let trashChildrenFile = new N3File(folderHandleToReadChildrenFrom, that.#noteChildrenFileName + ".json");
+			let trashChildrenFile = new N3File(folderHandle, [that.#noteChildrenFileName + ".json"]);
 			trashChildrenFile.textOrFalse().then(function(childrenAsString) {
 				childrenAsString = childrenAsString || "[]";
 				let children = JSON.parse(childrenAsString);
@@ -557,7 +259,6 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		return new Promise(function(resolve, reject) {
 
 			(function() {
-				// TODO : refactor like readNoteChildrenFile! no promise needed!
 				return new Promise(function(resolveI, rejectI) {
 					if (note.title == "root") {
 						let notesRootFolder = new N3Directory(that.directoryHandle, [dataOrTrashFolderName, that.#notesFolderName]);
@@ -626,44 +327,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 						}
 					});
 				})().then(function(childrenContainerFolderHandle) {
-					that.#readNoteChildrenFile(key, childrenContainerFolderHandle).then(function(childrenKeys) {
+					that.#readNoteChildrenFile(childrenContainerFolderHandle).then(function(childrenKeys) {
 						let childrenPromises = childrenKeys.map(function(childrenKey) {
-							return that.#readNoteData(childrenKey, notesFolderHandle).then(function(data) {
-								return that.#readNoteTitle(childrenKey, notesFolderHandle).then(function(title) {
-									return that.#readNoteDesription(childrenKey, notesFolderHandle).then(function(description) {
-										return that.#readNoteChildrenFile(childrenKey, childrenContainerFolderHandle).then(function(childrenChildrenKeys) {
-
-											return that.#readNoteExpand(childrenKey, notesFolderHandle).then(function(expanded) {
-
-												return notesFolderHandle.getDirectoryHandle(childrenKey, { create: false }).then(function(childrenNoteFolderHandler) {
-													return that.#readNoteChildrenFile(childrenKey, childrenNoteFolderHandler).then(function(childrenChildrenKeys) {
-
-														let note = {
-															key: childrenKey,
-															lazy: true,
-															expanded: expanded.expanded,
-															title: title.title,
-															data: data
-
-														};
-
-														note.data.description = description.description;
-
-														if (childrenChildrenKeys.length == 0) {
-															note.children = [];
-														}
-
-														return note;
-
-													});
-
-												});
-											});
-										});
-									});
+							return notesFolderHandle.getDirectoryHandle(childrenKey, { create: false }).then(function(noteFolderHandle) {
+								return that.#readNote(noteFolderHandle).then(function(note) {
+									return note;
 								});
-
-
 							});
 						});
 
@@ -683,11 +352,11 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 	#writeTaskTitle(dirHandle, task) {
 		var that = this;
-		let titleFile = new N3File(dirHandle, that.#taskTitleFileName + ".json");
+		let titleFile = new N3File(dirHandle, [that.#taskTitleFileName + ".json"]);
 		return titleFile.text().then(function(text) {
 			let oldTitle = JSON.parse(text);
 			let timeStampAsTime = JSJoda.Instant.parse(oldTitle.timeStamp).epochSecond();
-			let prevNoteTitleFile = new N3File(dirHandle, that.#taskTitleFileName + "." + timeStampAsTime + ".json");
+			let prevNoteTitleFile = new N3File(dirHandle, [that.#taskTitleFileName + "." + timeStampAsTime + ".json"]);
 			return prevNoteTitleFile.write(JSON.stringify(oldTitle, null, 2));
 		}).then(function() {
 			let title = {
@@ -701,16 +370,16 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				title: task.title,
 				timeStamp: JSJoda.Instant.now().toString()
 			};
-			let titleFile = new N3File(dirHandle, that.#taskTitleFileName + ".json");
+			let titleFile = new N3File(dirHandle, [that.#taskTitleFileName + ".json"]);
 			return titleFile.write(JSON.stringify(title, null, 2));
 		});
 	}
-	
+
 	#readTaskTitle(taskFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let titleFile = new N3File(taskFolderHandle, that.#taskTitleFileName + ".json");
+			let titleFile = new N3File(taskFolderHandle, [that.#taskTitleFileName + ".json"]);
 			titleFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -721,7 +390,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		});
 	}
-	
+
 	#writeTaskDescription(dirHandle, task) {
 		var that = this;
 
@@ -729,11 +398,11 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 			task.description = "";
 		}
 
-		let descriptionFile = new N3File(dirHandle, that.#taskDescriptionFileName + ".json");
+		let descriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + ".json"]);
 		return descriptionFile.text().then(function(text) {
 			let oldDescription = JSON.parse(text);
 			let timeStampAsTime = JSJoda.Instant.parse(oldDescription.timeStamp).epochSecond();
-			let prevNoteDescriptionFile = new N3File(dirHandle, that.#taskDescriptionFileName + "." + timeStampAsTime + ".json");
+			let prevNoteDescriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + "." + timeStampAsTime + ".json"]);
 			return prevNoteDescriptionFile.write(JSON.stringify(oldDescription, null, 2));
 		}).then(function() {
 			let description = {
@@ -747,17 +416,17 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				description: task.description,
 				timeStamp: JSJoda.Instant.now().toString()
 			};
-			let descriptionFile = new N3File(dirHandle, that.#taskDescriptionFileName + ".json");
+			let descriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + ".json"]);
 			return descriptionFile.write(JSON.stringify(description, null, 2));
 		});
 
 	}
-	
+
 	#readTasksDesription(taskFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let descriptionFile = new N3File(taskFolderHandle, that.#taskDescriptionFileName + ".json");
+			let descriptionFile = new N3File(taskFolderHandle, [that.#taskDescriptionFileName + ".json"]);
 			descriptionFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
@@ -926,8 +595,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				let noteFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, note.key]);
 				let notesTrashFolder = new N3Directory(that.directoryHandle, [that.#trashFolderName, that.#notesFolderName]);
 
-				// TODO: use readNoteChildrenFile
-				let trashChildrenFile = new N3File(that.directoryHandle, that.#trashFolderName + "/" + that.#notesFolderName + "/" + (parentNoteInTrash ? (parentNoteInTrash.key + "/") : "") + that.#noteChildrenFileName + ".json");
+				let noteChildrenFilePath = [that.#trashFolderName, that.#notesFolderName];
+				if (parentNoteInTrash) {
+					noteChildrenFilePath.push(parentNoteInTrash.key);
+				}
+				noteChildrenFilePath.push(that.#noteChildrenFileName + ".json");
+				let trashChildrenFile = new N3File(that.directoryHandle, noteChildrenFilePath);
 				trashChildrenFile.textOrFalse().then(function(childrenAsString) {
 					childrenAsString = childrenAsString || "[]";
 					let trashNoteChildren = JSON.parse(childrenAsString);
@@ -1028,16 +701,13 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let imgPath = that.#imagesFolderName + "/" + fileName;
-
-			let n3File = new N3File(that.directoryHandle, imgPath);
+			let n3File = new N3File(that.directoryHandle, [that.#imagesFolderName, fileName]);
 			n3File.exists().then(function(exists) {
 				if (exists) {
 					resolve();
 				} else {
 
-					let n3Blob = new N3Blob(that.directoryHandle, blob);
-					n3Blob.save(imgPath).then(function() {
+					n3File.write(blob).then(function() {
 						resolve();
 					}).catch(function(error) {
 						reject(error);
@@ -1100,13 +770,6 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 														that.#readTask(taskFolderHandle).then(function(task) {
 															task.noteKey = noteFolderHandle.name;
 															tasks.push(task);
-															window.n3.search.document.add({
-																id: task.id,
-																noteKey: task.noteKey,
-																type: "task",
-																title: task.title,
-																content: task.title + "  " + task.description
-															});
 															loopTasks();
 														});
 													}
@@ -1134,36 +797,6 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 	}
 
-	/*taskFileHandle.getFile().then(function(taskFile) {
-		let taskFileName = taskFile.name;
-		taskFile.text().then(function(taskFileAsText) {
-			let taskAsJson = JSON.parse(taskFileAsText || "[]");
-			let noteKey = taskFileName.replaceAll(".json", "");
-			taskAsJson.forEach(function(task) {
-				task["noteKey"] = noteKey;
-				task.tags = task.tags || [];
-				task.tags.forEach(function(tagToAdd) {
-					let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
-						return existingTag.value == tagToAdd.value
-					});
-					if (tagIndex == -1) {
-						window.n3.task.tagsList.push(tagToAdd);
-					}
-				});
-				tasks.push(task);
-				window.n3.search.document.add({
-					id: task.id,
-					noteKey: task.noteKey,
-					type: "task",
-					title: task.title,
-					content: task.title + "  " + task.description
-				});
-			});
-			loopTasks();
-		});
-
-	});*/
-
 	#readTask(taskFolderHandle) {
 		let that = this;
 		return that.#readTaskData(taskFolderHandle).then(function(task) {
@@ -1176,4 +809,72 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 			});
 		});
 	}
+
+	#readNote(noteFolderHandle) {
+		let that = this;
+		return that.#readNoteData(noteFolderHandle).then(function(data) {
+			return that.#readNoteTitle(noteFolderHandle).then(function(title) {
+				return that.#readNoteDesription(noteFolderHandle).then(function(description) {
+					return that.#readNoteChildrenFile(noteFolderHandle).then(function(childrenChildrenKeys) {
+						return that.#readNoteExpand(noteFolderHandle).then(function(expanded) {
+							let note = {
+								key: noteFolderHandle.name,
+								lazy: true,
+								expanded: expanded.expanded,
+								title: title.title,
+								data: data
+
+							};
+							note.data.description = description.description;
+							if (childrenChildrenKeys.length == 0) {
+								note.children = [];
+							}
+							return note;
+						});
+					});
+				});
+			});
+		});
+	}
+
+	iterateNotesStore(callback, dataOrTrashFolderName = this.#dataFolderName) {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+
+			let notesFolder = new N3Directory(that.directoryHandle, [dataOrTrashFolderName, that.#notesFolderName]);
+			notesFolder.getHandle(false).then(function(notesFolderHandle) {
+
+				let notesIterator = notesFolderHandle.values();
+				let notesIteratorPromise = new Promise(function(resolveN, rejectN) {
+					(function loopNotes() {
+						notesIterator.next().then(function(element) {
+							if (element.done) {
+								resolveN();
+							} else {
+								if (element.value.kind == "directory") {
+
+									that.#readNote(element.value).then(function(note) {
+										callback(note).then(function() {
+											loopNotes();
+										});
+									});
+
+								} else {
+									loopNotes();
+								}
+							}
+						});
+
+					})();
+				});
+				notesIteratorPromise.then(function() {
+					resolve();
+				});
+
+			}).catch(function(error) {
+				resolve();
+			});
+		});
+	}
+
 }

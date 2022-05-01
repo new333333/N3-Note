@@ -1,62 +1,27 @@
 
 class N3StoreServiceAbstract {
 
-	constructor() {
+	constructor(searchService) {
 		if (new.target === N3StoreServiceAbstract) {
 			throw new TypeError("Cannot construct N3StoreServiceAbstract instances directly");
 		}
 		
+		this.searchService = searchService;
+		
 		// TODO: complete list of required methods
-		if (typeof this.addNote !== "function") {
+		/*if (typeof this.addNote !== "function") {
 			throw new TypeError("Must override method addNote");
-		}
+		}*/
 	};
 
-	// TODO: add serach index service  in all mewthods
 	// TODO: add change logger service
-
-/*	loadData() {
-		var that = this;
-		return new Promise(function(resolve) {
-			that.loadNodes().then(function(tree) {
-				that.loadTasks().then(function(tasks) {
-					resolve({tree:tree, tasks: tasks});
-				});
-	
-			});
-		});
-	}*/
 	
 	// load root nodes, if key undefined
 	// load children notes if key defined
-	loadNotes = function(key) {
+	loadNotes(key) {
 		var that = this;
 		return new Promise(function(resolve, reject) {
-			
 			that.readNotesStore(key).then(function(children) {
-				
-				// TODO: umbauen!! search as Class, als Parameter to this class
-				addTreeToSearchIndex(children);
-				
-				function addTreeToSearchIndex(tree) {
-					if (!tree) {
-						return;
-					}
-					tree.forEach(function(node) {
-						// window.n3.search.index.add("noteKey:" + node.key, node.title + " " + node.data.description);
-						
-						window.n3.search.document.add({
-							id: node.key,
-							type: "note",
-							title: node.title,
-							content: node.title + " " + node.data.description
-						});		
-						
-						addTreeToSearchIndex(node.children);					
-					});
-				}
-					
-
 				resolve(children);
 			}).catch(function(error) {
 				reject(error);
@@ -65,11 +30,17 @@ class N3StoreServiceAbstract {
 		});
 	}
 	
+	iterateNotes(callback) {
+		return this.iterateNotesStore(callback);
+	}
+	
 	addTask(task) {
 		var that = this;
 		return that.#extractImages("task", task.id, task.description || "").then(function(htmltext) {
 			task.description = htmltext;
 			return that.addTaskStore(task);
+		}).then(function() {
+			return that.searchService.addTask(task);
 		});
 	}
 	
@@ -78,6 +49,8 @@ class N3StoreServiceAbstract {
 		return that.#extractImages("task", task.id, task.description || "").then(function(htmltext) {
 			task.description = htmltext;
 			return that.modifyTaskStore(task);
+		}).then(function() {
+			return that.searchService.updateTask(task);
 		});
 	}
 	
@@ -96,33 +69,25 @@ class N3StoreServiceAbstract {
 	
 	addNote(note) {
 		var that = this;
-		return new Promise(function(resolve, reject) {
-			that.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
-				note.data = note.data || {};
-				note.data.description = htmltext;
-				
-				that.addNoteStore(note).then(function() {
-					resolve();
-				}).catch(function(error) {
-					reject(error);
-				});
-			});
+		return this.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
+			note.data = note.data || {};
+			note.data.description = htmltext;
+			
+			return that.addNoteStore(note);
+		}).then(function() {
+			return that.searchService.addNote(note);
 		});
 	}
 	
 	modifyNote(note, modifiedFields) {
 		var that = this;
-		return new Promise(function(resolve, reject) {
-			that.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
-				note.data = note.data || {};
-				note.data.description = htmltext;
-				
-				that.modifyNoteStore(note, modifiedFields).then(function() {
-					resolve();
-				}).catch(function(error) {
-					reject(error);
-				});
-			});
+		return that.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
+			note.data = note.data || {};
+			note.data.description = htmltext;
+			
+			return that.modifyNoteStore(note, modifiedFields);
+		}).then(function() {
+			return that.searchService.updateNote(note);
 		});
 	}
 
@@ -135,46 +100,16 @@ class N3StoreServiceAbstract {
 	}
 	
 	moveTaskToTrash(task) {
-		return this.moveTaskToTrashStore(task);
+		return this.moveTaskToTrashStore(task).then(function() {
+			return that.searchService.updateNote(note, true);
+		});
 	}
 	
 	moveNoteToTrash(note) {
 		return this.moveNoteToTrashStore(note);
 	}
 
-// TODO: remove after reafcroring, no more used
-	#extractTasksImages(tasks) {
-		var that = this;
-		return new Promise(function(resolve) {
-	
-			if (!tasks || tasks.length == 0) {
-				resolve(tasks);
-			}
-	
-			(function loopTasks(i) {
-	
-				if (i >= tasks.length) {
-					resolve(tasks);
-				} else {
-					let task = tasks[i];
-					task.modificationDate = JSJoda.Instant.now().toString();
-					// conert from old structure, TODO remove it
-					if (!task.creationDate) {
-						task.creationDate = JSJoda.Instant.now().toString();
-					}
-	
-					that.#extractImages("task", task.id, task.description || "").then(function(htmltext) {
-						task["description"] = htmltext;
-						loopTasks(i + 1);
-					});
-	
-				}
-			})(0);
-		});
-	}
-
-
-	#extractImages = function(ownerTyp, ownerId, htmltext) {
+	#extractImages(ownerTyp, ownerId, htmltext) {
 		var that = this;
 		return new Promise(function(resolve) {
 			if (!htmltext) {

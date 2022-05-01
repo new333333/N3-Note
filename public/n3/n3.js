@@ -98,7 +98,6 @@ TODO
 
 
 window.n3 = window.n3 || {};
-window.n3.store = window.n3.store || {};
 window.n3.task = window.n3.task || {
 	"tinymce": false,
 	"validate": {},
@@ -197,25 +196,10 @@ window.n3.localFolder = {};
 window.n3.tasks = [];
 window.n3.tabulator = false;
 
-window.n3.search = window.n3.search || {};
-
-let n3Store;
+let searchService;
+let storeService;
 
 $(function() {
-
-
-	window.n3.search.index = new FlexSearch.Index({
-		tokenize: "forward"
-	});
-	window.n3.search.document = new FlexSearch.Document({
-		tokenize: "forward",
-		document: {
-			id: "id",
-			tag: "type",
-			index: ["type", "content"],
-			store: ["type", "title", "noteKey"]
-		}
-	});
 
 	window.n3.localFolder.init();
 
@@ -284,7 +268,7 @@ $(function() {
 			let newTitle = $(this).val();
 			if (node.title != newTitle) {
 				node.setTitle(newTitle);
-				n3Store.modifyNote(node, ["title"]).then(function() { });
+				storeService.modifyNote(node, ["title"]).then(function() { });
 			}
 		}
 	});
@@ -322,7 +306,7 @@ window.n3.ui.onUnload = function(event) {
 		}
 	});
 
-	n3Store.modifyNote(node, modifiedFields).then(function() { });
+	storeService.modifyNote(node, modifiedFields).then(function() { });
 }
 
 
@@ -334,7 +318,7 @@ window.n3.ui.openSearchDialog = function(noteKey, taskId, $trigger) {
 		let e = event || window.event;
 
 		let searchText = $(this).val();
-		let searchResults = window.n3.search.document.search(searchText, { index: "content", enrich: true });
+		let searchResults = searchService.getIndex().search(searchText, { index: "content", enrich: true });
 		$resultsList.html("");
 		if (searchResults && searchResults.length > 0) {
 			searchResults[0].result.forEach(function(searchResult) {
@@ -500,7 +484,7 @@ window.n3.node.delete = function(noteKey, taskId, $trigger) {
 		let parentNode = node.parent;
 
 
-		n3Store.moveNoteToTrash(node).then(function() {
+		storeService.moveNoteToTrash(node).then(function() {
 
 			// remove tasks from list
 			node.visit(function(node) {
@@ -582,28 +566,50 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 			window.n3.localFolder.verifyPermission(dir, true).then(function(granted) {
 				if (granted) {
 					$(".n3-no-localfolder").removeClass("n3-no-localfolder");
-					n3Store = new N3StoreServiceFileSystem(dir);
+					searchService = new N3SearchServiceFlexSearch(dir);
+					storeService = new N3StoreServiceFileSystem(dir, searchService);
 
 					set("localFolder", dir).then(function() {
 						window.n3.modal.closeAll();
 					});
 
 					window.n3.modal.closeAll(true);
-
-					n3Store.loadNotes().then(function(rootNodes) {
-						n3Store.loadTasks().then(function(tasks) {
-							window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
-							window.n3.initFancyTree(rootNodes).then(function() {
-								window.n3.initTaskTable();
-							
-								// TODO init UI method?
-								let form = $("[data-noteeditor]");
-								window.n3.node.getNodeHTMLEditor(form).then(function(data) {
-									resolve(true);
+					
+					console.log("start iterating all notes");
+					storeService.iterateNotesStore(function(note) {
+						return new Promise(function(resolve, reject) {
+							console.log("iterating note key " + note.key);
+							searchService.addNote(note).then(function() {
+								// just continue async
+							});
+							resolve();
+						});
+					}).then(function() {
+						console.log("finish iterating all notes");
+						
+						storeService.loadNotes().then(function(rootNodes) {
+							storeService.loadTasks().then(function(tasks) {
+								window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
+								
+								window.n3.tasks.forEach(function(task) {
+									searchService.addTask(task).then(function() {
+										// just continue async
+									});
+								});
+								
+								window.n3.initFancyTree(rootNodes).then(function() {
+									window.n3.initTaskTable();
+								
+									// TODO init UI method?
+									let form = $("[data-noteeditor]");
+									window.n3.node.getNodeHTMLEditor(form).then(function(data) {
+										resolve(true);
+									});
 								});
 							});
 						});
 					});
+
 
 				} else {
 					window.n3.modal.closeAll(true);
@@ -693,17 +699,10 @@ window.n3.node.add = function() {
 		node = $.ui.fancytree.getTree("[data-tree]").getRootNode();
 	}
 
-	let newNode = window.n3.node.getNewNodeData();
-
-	if (node.children && node.children.length == 0) {
-		let tree = [newNode];
-		$("[data-tree]").fancytree("option", "source", tree);
-		newNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(newNode.key);
-	} else {
-		newNode = node.addNode(newNode, "child");
-	}
+	let newNodeData = window.n3.node.getNewNodeData();
+	let newNode = node.addNode(newNodeData, "child");
 	newNode.setActive();
-	n3Store.addNote(newNode).then(function() { });
+	storeService.addNote(newNode).then(function() { });
 }
 
 window.n3.node.activateNode = function(node) {
@@ -718,7 +717,7 @@ window.n3.node.activateNode = function(node) {
 
 		$("[name='title']", form).val(node.title);
 		var description = ((node || {}).data || {}).description || "";
-		n3Store.loadImages("node", node.key, description).then(function(htmlText) {
+		storeService.loadImages("node", node.key, description).then(function(htmlText) {
 			window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
 				htmlEditor.setContent(htmlText);
 				htmlEditor.setDirty(false);
@@ -947,7 +946,7 @@ window.n3.initTaskTable = function() {
 							let state = this.dataset.state;
 							cell.setValue(state, false);
 
-							n3Store.modifyTask(cell.getData()).then(function() {
+							storeService.modifyTask(cell.getData()).then(function() {
 								instanceTippy.hide();
 							});
 
@@ -1128,7 +1127,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 
 						let currentNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
 						currentNode.data.description = editor.getContent();
-						n3Store.modifyNote(currentNode, ["description"]).then(function() { });
+						storeService.modifyNote(currentNode, ["description"]).then(function() { });
 						editor.setDirty(false);
 					}
 				});
@@ -1209,7 +1208,7 @@ window.n3.task.delete = function(noteKey, taskId, $trigger) {
 	let removedTasks = window.n3.tasks.splice(taskToRemoveIndex, 1);
 
 	removedTasks.forEach(function(task) {
-		n3Store.moveTaskToTrash(task).then(function() {
+		storeService.moveTaskToTrash(task).then(function() {
 			window.n3.tabulator.refreshFilter();
 		});
 	});
@@ -1417,7 +1416,7 @@ window.n3.modal.onOpenTaskDetails = function(noteKey, taskId, targetElement) {
 			window.n3.task.getStatusEditor(form, task.status);
 			$("[name='duration']", form).val(task.duration || "");
 
-			n3Store.loadImages("task", task.id, (task || {}).description || "").then(function(htmlText) {
+			storeService.loadImages("task", task.id, (task || {}).description || "").then(function(htmlText) {
 				window.n3.task.getTaskHTMLEditor(form).then(function(htmlEditor) {
 					htmlEditor.setContent(htmlText);
 					htmlEditor.setDirty(false);
@@ -1479,7 +1478,7 @@ window.n3.task.save = function(noteKey, taskId, $trigger) {
 			// ther's no nodes, add one
 			let newNode = window.n3.node.getNewNodeData();
 			node = node.addNode(newNode, "child");
-			n3Store.addNote(node).then(function() { });
+			storeService.addNote(node).then(function() { });
 		}
 
 		let newTaskId = crypto.randomUUID();
@@ -1501,7 +1500,7 @@ window.n3.task.save = function(noteKey, taskId, $trigger) {
 				"creationDate": JSJoda.Instant.now().toString()
 			};
 
-			n3Store.addTask(newTask).then(function() {
+			storeService.addTask(newTask).then(function() {
 				let newLength = window.n3.tasks.unshift(newTask);
 
 				window.n3.task.getTagsEditor(form).value.forEach(function(tagToAdd) {
@@ -1540,7 +1539,7 @@ window.n3.task.save = function(noteKey, taskId, $trigger) {
 				}
 			});
 
-			n3Store.modifyTask(task).then(function() {
+			storeService.modifyTask(task).then(function() {
 
 				window.n3.tabulator.refreshFilter();
 
@@ -1581,7 +1580,7 @@ window.n3.initFancyTree = function(rootNodes) {
 			source: rootNodes,
 			lazyLoad: function(event, data) {
 				data.result = new Promise(function(resolve, reject) {
-					n3Store.loadNotes(data.node.key).then(function(children) {
+					storeService.loadNotes(data.node.key).then(function(children) {
 						resolve(children);
 					});
 				});
@@ -1639,10 +1638,10 @@ window.n3.initFancyTree = function(rootNodes) {
 				}
 			},
 			expand: function(event, data, a, b) {
-				n3Store.expandNote(data.node, true);
+				storeService.expandNote(data.node, true);
 			},
 			collapse: function(event, data) {
-				n3Store.expandNote(data.node, false);
+				storeService.expandNote(data.node, false);
 			},
 			loadChildren: function(event, data) {
 				data.node.visit(function(subNode) {
@@ -1779,8 +1778,8 @@ window.n3.initFancyTree = function(rootNodes) {
 						// ignore mode, always move
 						var oldParentNote = data.otherNode.parent;
 						data.otherNode.moveTo(node, data.hitMode);
-						// TODO: first call n3Store.moveNote!! - the same way change all other moveNote places!
-						n3Store.moveNote(data.otherNode, oldParentNote).then(function() { });
+						// TODO: first call storeService.moveNote!! - the same way change all other moveNote places!
+						storeService.moveNote(data.otherNode, oldParentNote).then(function() { });
 					} else if (data.files.length) {
 						// Drop files
 						for (let i = 0; i < data.files.length; i++) {
@@ -1790,7 +1789,7 @@ window.n3.initFancyTree = function(rootNodes) {
 							newNodeData.title = "'" + file.name + "' (" + file.size + " bytes)";
 
 							let newNode = node.addNode(newNodeData, data.hitMode);
-							n3Store.addNote(newNode).then(function() { });
+							storeService.addNote(newNode).then(function() { });
 							// TODO: upload file!!!
 
 
@@ -1812,7 +1811,7 @@ window.n3.initFancyTree = function(rootNodes) {
 						newNodeData.title = firstLine.trim();
 						newNodeData.data.description = text;
 						let newNode = node.addNode(newNodeData, data.hitMode);
-						n3Store.addNote(newNode).then(function() { });
+						storeService.addNote(newNode).then(function() { });
 
 					}
 					node.setExpanded();
