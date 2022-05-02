@@ -55,11 +55,28 @@ class N3File {
 		return this.getHandle(true).then(function(fileHandle) {
 			return fileHandle.createWritable();
 		}).then(function(writable) {
-			
 			return writable.write(content).then(function() {
 				return writable.close();
 			});
 			
+		});
+	}
+	
+	copyTo(targetFolderHandle) {
+		return this.getHandle(true).then(function(fileHandle) {
+			return fileHandle.getFile().then(function(file) {
+				return file.text().then(function(fileContent) {
+					return targetFolderHandle.getFileHandle(file.name, { create: true }).then(function(targetFileHandle) {
+						return targetFileHandle.createWritable().then(function(writable) {
+							return writable.write(fileContent).then(function() {
+								return writable.close().then(function() {
+									return true;
+								});
+							});
+						});
+					});
+				});
+			});
 		});
 	}
 	

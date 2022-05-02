@@ -28,6 +28,32 @@ class N3Directory {
 		});
 	}
 
+	forEach(callback) {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			return that.getHandle(false).then(function(folderHadle) {
+				let folderIterator = folderHadle.values();
+				let p = new Promise(function(resolvep, rejectp) {
+					(function loopEntries() {
+						folderIterator.next().then(function(element) {
+							let done = element.done;
+							if (done) {
+								resolvep();
+							} else {
+								callback(element.value).then(function() {
+									loopEntries();
+								});
+							}
+						});
+					})();
+	
+				});
+				p.then(function() {
+					resolve();
+				});
+			});
+		});
+	}
 
 	#copyFolderTo(dirHandle, targetFolderHandle) {
 		// dirHandle

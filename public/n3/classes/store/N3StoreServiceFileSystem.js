@@ -1,5 +1,8 @@
 // TODO: cache read data to prevent disc access?
 class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
+	
+	#STOREVERSION = 2;
+	#configFileName
 
 	#dataFolderName
 	#imagesFolderName
@@ -22,6 +25,8 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	constructor(directoryHandle, searchService) {
 		super(searchService);
 		this.directoryHandle = directoryHandle;
+		
+		this.#configFileName = "conf";
 
 		this.#imagesFolderName = "assets";
 		this.#dataFolderName = "data";
@@ -42,6 +47,204 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	};
 
 
+	migrateStoreNow() {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			return that.#readConfig().then(function(config) {
+				if (that.#STOREVERSION > config.version) {
+					console.log("Migrate store because #STOREVERSION = " + that.#STOREVERSION + " is newwer then used " + config.version);
+					that.#migrateStoreFromV1ToV2().then(function() {
+						that.#writeConfig().then(function() {
+							resolve();	
+						});
+					});
+				} else {
+					resolve();
+				}
+			});
+		});
+	}	
+	
+	#migrateStoreFromV1ToV2() {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			console.log("migrateStoreFromV1ToV2");
+			
+			console.log(">>>>>> migrateStoreFromV1ToV2 files -> assets MANUELL!!!!!!!!!");
+			//return that.#migrateStoreFilesFromV1ToV2();
+			
+			console.log("migrateStoreNodesFromV1toV2");
+			//return that.#migrateStoreNodesFromV1toV2();
+			//return that.#migrateStoreTasksFromV1toV2();
+		}).then(function() {
+			// console.log("migrateStoreFromV1ToV2 files -> assets done");
+			console.log("migrateStoreNodesFromV1toV2 done");
+			
+			resolve();
+		});
+	}
+	
+	#migrateStoreTasksFromV1toV2() {
+		let that = this;
+		let tasks = [];
+		return new Promise(function(resolve, reject) {
+			that.directoryHandle.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
+				let asyncIt = tableDirHandle.values();
+				let p = new Promise(function(resolvep) {
+					(function loopEntries() {
+						asyncIt.next().then(function(element) {
+							let taskFileHandle = element.value;
+							let done = element.done;
+
+							if (done) {
+								resolvep();
+							} else {
+
+								taskFileHandle.getFile().then(function(taskFile) {
+									let taskFileName = taskFile.name;
+									taskFile.text().then(function(taskFileAsText) {
+										let tasks = JSON.parse(taskFileAsText || "[]");
+										let nodeKey = taskFileName.replaceAll(".json", "");
+										tasks.forEach(function(task) {
+											task["noteKey"] = nodeKey;
+											// TODO remove it migrate to status from done, archived
+											if (task.done) {
+												task.status = "DONE";
+											} else if (task.archived) {
+												task.status = "ARCHIVED";
+											} else if (!task.status) {
+												task.status = "TODO";
+											}
+											delete task.done;
+											delete task.archived;
+										});
+										
+										let p = new Promise(function(resolve3) {
+											(function loopChildren(i) {
+		
+												if (i >= tasks.length) {
+													resolve3();
+												} else {
+													that.addTaskStore(tasks[i]).then(function() {
+														loopChildren(i + 1);
+													});
+												}
+											})(0);
+										});
+										p.then(function() {
+											loopEntries();
+										});
+									});
+
+								});
+							}
+						});
+
+					})();
+
+				});
+				p.then(function() {
+					resolve(tasks);
+				});
+
+			});
+		});
+	}
+	
+	#migrateStoreNodesFromV1toV2() {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			that.directoryHandle.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
+				treeFileHandle.getFile().then(function(treeFile) {
+					treeFile.text().then(function(treeContents) {
+						let tree = false;
+						if (treeContents) {
+							tree = JSON.parse(treeContents);
+							
+							migrateStoreTreeFromV1toV2(tree);
+							
+							function migrateStoreTreeFromV1toV2(tree, parent) {
+								if (!tree) {
+									return;
+								}
+								return new Promise(function(resolve1, reject1) {
+									(function loopChildren(i) {
+	
+										if (i >= tree.length) {
+											resolve1();
+										} else {
+											if (parent) {
+												tree[i].parent = parent;
+											}
+											that.addNoteStore(tree[i]).then(function() {
+												migrateStoreTreeFromV1toV2(tree[i].children, tree[i]);
+												loopChildren(i + 1);
+											});
+										}
+									})(0);
+								});
+							}
+							
+						}
+		
+						resolve(tree);
+					});
+				});
+			});
+		});
+	}
+	
+/*	#migrateStoreFilesFromV1ToV2() {
+		let that = this;
+
+		return new Promise(function(resolve, reject) {
+			let v2files = new N3Directory(that.directoryHandle, ["files"]);
+			let v3assets = new N3Directory(that.directoryHandle, [that.#imagesFolderName]);		
+		
+			return v2files.getHandle(true).then(function(v2FilesFolderHandle) {
+				return v3assets.getHandle(true).then(function(v3FilesFolderHandle) {
+					return v2files.forEach(function(elementHanlde) {
+						return new Promise(function(resolve1, reject1) {
+							let v2file = new N3File(v2FilesFolderHandle, [elementHanlde.name]);
+							v2file.copyTo(v3FilesFolderHandle).then(function() {
+								resolve1();
+							});
+						});
+					}).then(function() {
+						console.log("migrateStoreFilesFromV1ToV2 done");
+						resolve();
+					});
+				});
+			});
+		
+		});
+	}*/
+	
+	
+	#readConfig() {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			let configFile = new N3File(that.directoryHandle, [that.#configFileName + ".json"]);
+			configFile.text().then(function(config) {
+				config = config || "{}";
+				config = JSON.parse(config);
+				resolve(config);
+			}).catch(function(err) {
+				resolve({
+					version: 1
+				});
+			});
+		});	
+	}
+	
+	#writeConfig() {
+		let that = this;
+		let configFile = new N3File(that.directoryHandle, [that.#configFileName + ".json"]);
+		return configFile.write(JSON.stringify({
+			version: that.#STOREVERSION
+		}, null, 2));
+	}
+	
 	#writeNoteData(noteFolderHandle, note) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
@@ -301,10 +504,31 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 	}
 
 	readNotesInTrash() {
+		return this.readNotes(that.#trashFolderName);
+	}
+	
+	// TODO: remove description from readNotesTreeStore and readNotesStore
+	readNotesTreeStore(key, dataOrTrashFolderName = this.#dataFolderName) {
 		let that = this;
-		return new Promise(function(resolve, reject) {
-			readNotes(that.#trashFolderName).then(function(children) {
-				resolve(children);
+		return that.readNotesStore(key, dataOrTrashFolderName).then(function(children) {
+			
+			return new Promise(function(resolve, reject) {
+
+				(function loopChildren(i) {
+	
+					if (i >= children.length) {
+						resolve(children);
+					} else {
+						
+						that.readNotesTreeStore(children[i].key, dataOrTrashFolderName).then(function(notesChildren) {
+							children[i].children = notesChildren;
+							loopChildren(i + 1);
+						}).catch(function(error) {
+							// it's required!
+							reject(error);
+						});
+					}
+				})(0);
 			});
 		});
 	}

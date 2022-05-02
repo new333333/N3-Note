@@ -2,12 +2,8 @@
 
 TODO 
 
- - file structure changed
- - delete task - modal geht nicht zu
- - export als ZIP (semantic UI first)
  - link note, link task
  - change sttaus with comment ? task status change history
- - choose folder list (semantic UI first)
  - file strucure ändern - bei Google
  - priority: Is Important, Is urgent, like/don't like -  wie in amplenote, score todos (like amlenote...) opcja: push down (score manipulation) to DATE, push to top (score)
 				Eisenhower Matrix - https://www.amplenote.com/blog/todo_list_auto_sorts_with_eisenhower_matrix
@@ -29,8 +25,9 @@ TODO
  - subtasks - checkliste	  
  - Ocr with tesseractjs
  - bulma theme ? better change to symantic UI  
-
-	  
+ - export als ZIP (semantic UI first)
+ - choose folder list (semantic UI first)
+  
  - full filter options (filet completed/archived als beide oder nur eine)
  - close all nodes/expande all nodes utton fpr tree
  - dynamische grupierung
@@ -95,7 +92,6 @@ TODO
 		
 
 */
-
 
 window.n3 = window.n3 || {};
 window.n3.task = window.n3.task || {
@@ -569,47 +565,48 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 					searchService = new N3SearchServiceFlexSearch(dir);
 					storeService = new N3StoreServiceFileSystem(dir, searchService);
 
+
 					set("localFolder", dir).then(function() {
 						window.n3.modal.closeAll();
 					});
 
 					window.n3.modal.closeAll(true);
-					
-					console.log("start iterating all notes");
-					storeService.iterateNotesStore(function(note) {
-						return new Promise(function(resolve, reject) {
-							console.log("iterating note key " + note.key);
-							searchService.addNote(note).then(function() {
-								// just continue async
-							});
-							resolve();
-						});
-					}).then(function() {
-						console.log("finish iterating all notes");
-						
-						storeService.loadNotes().then(function(rootNodes) {
-							storeService.loadTasks().then(function(tasks) {
-								window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
-								
-								window.n3.tasks.forEach(function(task) {
-									searchService.addTask(task).then(function() {
-										// just continue async
-									});
-								});
-								
-								window.n3.initFancyTree(rootNodes).then(function() {
-									window.n3.initTaskTable();
-								
-									// TODO init UI method?
-									let form = $("[data-noteeditor]");
-									window.n3.node.getNodeHTMLEditor(form).then(function(data) {
-										resolve(true);
-									});
-								});
-							});
-						});
-					});
 
+					storeService.migrateStore().then(function() {
+
+						storeService.iterateNotesStore(function(note) {
+							return new Promise(function(resolve, reject) {
+								searchService.addNote(note).then(function() {
+									// just continue async
+								});
+								resolve();
+							});
+						}).then(function() {
+
+							storeService.loadTasks().then(function(tasks) {
+								window.n3.initTaskTable();
+								storeService.loadNotesTree().then(function(rootNodes) {
+									window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
+
+									window.n3.tasks.forEach(function(task) {
+										searchService.addTask(task).then(function() {
+											// just continue async
+										});
+									});
+
+									window.n3.initFancyTree(rootNodes).then(function() {
+
+										// TODO init UI method?
+										let form = $("[data-noteeditor]");
+										window.n3.node.getNodeHTMLEditor(form).then(function(data) {
+											resolve(true);
+										});
+									});
+								});
+							});
+						});
+
+					});
 
 				} else {
 					window.n3.modal.closeAll(true);
@@ -824,26 +821,26 @@ window.n3.refreshNodeTasksFilter = function(noteKey, taskId, trigger) {
 				return childrenKeys;
 			}
 		}
-		
+
 		if (window.n3.tabulator) {
 			window.n3.tabulator.setFilter(function(data, filterParams) {
 				//data - the data for the row being filtered
 				//filterParams - params object passed to the filter
-	
+
 				let passed = filterParams.childrenNodesKeysJoined.indexOf("|" + data.noteKey + "|") > -1;
 				passed = passed && filterParams.chosenStatusJoined.indexOf("|" + data.status + "|") > -1;
-	
+
 				let ignoreTags = filterParams.tags.some(function(filterTag) {
 					return filterTag.value == "Ignore tags";
 				});
-	
+
 				let hasTage = ignoreTags || data.tags.some(function(taskTag) {
 					return filterParams.tags.some(function(filterTag) {
 						return taskTag.value == filterTag.value;
 					});
 				});
 				passed = passed && hasTage;
-	
+
 				return passed;
 			}, {
 				chosenStatusJoined: "|" + chosenStatus.join("|") + "|",

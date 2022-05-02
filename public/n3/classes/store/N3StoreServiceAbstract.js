@@ -16,20 +16,30 @@ class N3StoreServiceAbstract {
 
 	// TODO: add change logger service
 	
+	
+	
+	migrateStore() {
+		return Promise.resolve();
+		/*var that = this;
+		return new Promise(function(resolve, reject) {
+			return that.migrateStoreNow().then(function() {
+				console.log("N3StoreServiceAbstract migrateStore");
+				resolve();
+			});
+		});*/
+	}
+	
 	// load root nodes, if key undefined
 	// load children notes if key defined
 	loadNotes(key) {
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			that.readNotesStore(key).then(function(children) {
-				resolve(children);
-			}).catch(function(error) {
-				reject(error);
-			});
-	
-		});
+		return this.readNotesStore(key);
 	}
-	
+
+
+	loadNotesTree() {
+		return this.readNotesTreeStore();
+	}
+		
 	iterateNotes(callback) {
 		return this.iterateNotesStore(callback);
 	}
@@ -55,16 +65,7 @@ class N3StoreServiceAbstract {
 	}
 	
 	loadTasks() {
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			
-			that.readTasksStore().then(function(tasks) {
-				resolve(tasks);
-			}).catch(function(error) {
-				reject(error);
-			});
-			
-		});
+		return this.readTasksStore();
 	};
 	
 	addNote(note) {
