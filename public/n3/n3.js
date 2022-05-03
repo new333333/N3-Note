@@ -2,6 +2,7 @@
 
 TODO 
 
+ - paste img from weg
  - link note, link task
  - change sttaus with comment ? task status change history
  - file strucure ändern - bei Google
@@ -573,19 +574,10 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 					window.n3.modal.closeAll(true);
 
 					storeService.migrateStore().then(function() {
-
-						storeService.iterateNotesStore(function(note) {
-							return new Promise(function(resolve, reject) {
-								searchService.addNote(note).then(function() {
-									// just continue async
-								});
-								resolve();
-							});
-						}).then(function() {
-
-							storeService.loadTasks().then(function(tasks) {
-								window.n3.initTaskTable();
-								storeService.loadNotesTree().then(function(rootNodes) {
+						storeService.loadTasks().then(function(tasks) {
+							window.n3.initTaskTable();
+							storeService.loadNotesTree().then(function(tree) {
+								searchService.addNotesTree(tree).then(function() {
 									window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
 
 									window.n3.tasks.forEach(function(task) {
@@ -594,19 +586,18 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 										});
 									});
 
-									window.n3.initFancyTree(rootNodes).then(function() {
-
-										// TODO init UI method?
-										let form = $("[data-noteeditor]");
-										window.n3.node.getNodeHTMLEditor(form).then(function(data) {
+									// TODO init UI method?
+									let form = $("[data-noteeditor]");
+									window.n3.node.getNodeHTMLEditor(form).then(function(data) {
+										window.n3.initFancyTree(tree).then(function() {
 											resolve(true);
 										});
 									});
 								});
 							});
 						});
-
 					});
+
 
 				} else {
 					window.n3.modal.closeAll(true);

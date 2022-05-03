@@ -1,6 +1,6 @@
 
 class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
-	
+
 	#indexFolderName
 	#flexSearchDocument
 	#asyncExportIndexQueue
@@ -19,28 +19,28 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			}
 		});
 		this.#importIndex();
-		
+
 		this.#asyncExportIndexQueue = async.queue(function(task, callback) {
-			
+
 			task.fn().then(function() {
 				callback();
 			});
-		
+
 		}, 1);
-		
+
 		this.#asyncExportIndexQueue.error(function(err, task) {
 			console.error("task experienced an error", err, task);
 		});
-		
+
 		this.#asyncExportIndexQueue.drain(function() {
 			console.log("all items have been processed");
-		});	
+		});
 	}
-	
+
 	getIndex() {
 		return this.#flexSearchDocument;
 	}
-	
+
 	addNote(note) {
 		this.#flexSearchDocument.add({
 			id: note.key,
@@ -48,10 +48,43 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			title: note.title,
 			content: note.title + " " + note.data.description,
 			trash: false
-		});	
+		});
 		return this.#exportIndex();
 	}
-	
+
+	addNotesTree(tree) {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			if (!tree) {
+				resolve();
+			}
+			let p = new Promise(function(resolve1) {
+				(function loopNotes(i) {
+
+					if (i >= tree.length) {
+						resolve1();
+					} else {
+						let note = tree[i];
+						that.#flexSearchDocument.add({
+							id: note.key,
+							type: "note",
+							title: note.title,
+							content: note.title + " " + note.data.description,
+							trash: false
+						});
+						
+						that.addNotesTree(note.children).then(function() {
+							loopNotes(i + 1);
+						});
+					}
+				})(0);
+			});
+			p.then(function() {
+				resolve();
+			});
+		});
+	}
+
 	// TODO: history title, description are not indexed
 	updateNote(note, trash = false) {
 		this.#flexSearchDocument.update({
@@ -60,10 +93,10 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			title: note.title,
 			content: note.title + " " + note.data.description,
 			trash: trash
-		});	
+		});
 		return this.#exportIndex();
 	}
-	
+
 	addTask(task) {
 		this.#flexSearchDocument.add({
 			id: task.id,
@@ -71,10 +104,10 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			title: task.title,
 			content: task.title + " " + task.description,
 			trash: false
-		});	
+		});
 		return this.#exportIndex();
 	}
-	
+
 	// TODO: history title, description are not indexed
 	updateTask(task, trash = false) {
 		this.#flexSearchDocument.update({
@@ -83,10 +116,10 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			title: task.title,
 			content: task.title + " " + task.description,
 			trash: trash
-		});	
+		});
 		return this.#exportIndex();
 	}
-	
+
 	// TODO: hostory title, description are not indexed
 	updateNote(note, trash = false) {
 		this.#flexSearchDocument.update({
@@ -95,10 +128,10 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			title: note.title,
 			content: note.title + " " + note.data.description,
 			trash: trash
-		});	
+		});
 		return this.#exportIndex();
 	}
-	
+
 	#exportIndex() {
 		return Promise.resolve();
 		/*let that = this;
@@ -114,17 +147,17 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			}
 		});*/
 	}
-	
+
 	#writeIndex() {
 		let that = this;
 		let indexFolder = new N3Directory(that.directoryHandle, [that.#indexFolderName]);
 		return new Promise(function(resolve, reject) {
 			return indexFolder.getHandle(true).then(function(indexFolderHandle) {
 				let exportKeysCount = 1;
-				that.#flexSearchDocument.export(function(key, data) { 
-					return new Promise(function(resolve2){
-	        			let indexFile = new N3File(indexFolderHandle, [key]);
-	        			indexFile.write(data).then(function() {
+				that.#flexSearchDocument.export(function(key, data) {
+					return new Promise(function(resolve2) {
+						let indexFile = new N3File(indexFolderHandle, [key]);
+						indexFile.write(data).then(function() {
 							if (exportKeysCount == 9) {
 								resolve();
 							} else {
@@ -134,11 +167,11 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 						});
 					});
 				});
-	
+
 			});
 		});
 	}
-	
+
 	#importIndex() {
 		return Promise.resolve();
 		/*let that = this;
@@ -168,5 +201,5 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			return p;
 		});*/
 	}
-	
+
 }
