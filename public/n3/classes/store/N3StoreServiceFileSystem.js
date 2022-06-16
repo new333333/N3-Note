@@ -9,21 +9,17 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 	#notesFolderName
 
+	#noteMetaDataFileName
 	#noteDataFileName
 	#noteExpandedFileName
 	#noteTitleFileName
 	#noteDescriptionFileName
 	#noteChildrenFileName
 
-	#tasksFolderName
-
 	#trashFolderName
-	#taskDataFileName
-	#taskTitleFileName
-	#taskDescriptionFileName
 
-	constructor(directoryHandle, searchService) {
-		super(searchService);
+	constructor(directoryHandle) {
+		super();
 		this.directoryHandle = directoryHandle;
 		
 		this.#configFileName = "conf";
@@ -33,6 +29,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 		this.#notesFolderName = "notes";
 
+		this.#noteMetaDataFileName = "metadata";
 		this.#noteDataFileName = "data";
 		this.#noteExpandedFileName = "expanded";
 		this.#noteTitleFileName = "title";
@@ -40,187 +37,9 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		this.#noteChildrenFileName = "children";
 		this.#trashFolderName = "trash";
 
-		this.#tasksFolderName = "tasks";
-		this.#taskDataFileName = "data";
-		this.#taskTitleFileName = "title";
-		this.#taskDescriptionFileName = "description";
 	};
 
 
-	migrateStoreNow() {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			return that.#readConfig().then(function(config) {
-				if (that.#STOREVERSION > config.version) {
-					console.log("Migrate store because #STOREVERSION = " + that.#STOREVERSION + " is newwer then used " + config.version);
-					that.#migrateStoreFromV1ToV2().then(function() {
-						that.#writeConfig().then(function() {
-							resolve();	
-						});
-					});
-				} else {
-					resolve();
-				}
-			});
-		});
-	}	
-	
-	#migrateStoreFromV1ToV2() {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			console.log("migrateStoreFromV1ToV2");
-			
-			console.log(">>>>>> migrateStoreFromV1ToV2 files -> assets MANUELL!!!!!!!!!");
-			//return that.#migrateStoreFilesFromV1ToV2();
-			
-			console.log("migrateStoreNodesFromV1toV2");
-			//return that.#migrateStoreNodesFromV1toV2();
-			//return that.#migrateStoreTasksFromV1toV2();
-		}).then(function() {
-			// console.log("migrateStoreFromV1ToV2 files -> assets done");
-			console.log("migrateStoreNodesFromV1toV2 done");
-			
-			resolve();
-		});
-	}
-	
-	#migrateStoreTasksFromV1toV2() {
-		let that = this;
-		let tasks = [];
-		return new Promise(function(resolve, reject) {
-			that.directoryHandle.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-				let asyncIt = tableDirHandle.values();
-				let p = new Promise(function(resolvep) {
-					(function loopEntries() {
-						asyncIt.next().then(function(element) {
-							let taskFileHandle = element.value;
-							let done = element.done;
-
-							if (done) {
-								resolvep();
-							} else {
-
-								taskFileHandle.getFile().then(function(taskFile) {
-									let taskFileName = taskFile.name;
-									taskFile.text().then(function(taskFileAsText) {
-										let tasks = JSON.parse(taskFileAsText || "[]");
-										let nodeKey = taskFileName.replaceAll(".json", "");
-										tasks.forEach(function(task) {
-											task["noteKey"] = nodeKey;
-											// TODO remove it migrate to status from done, archived
-											if (task.done) {
-												task.status = "DONE";
-											} else if (task.archived) {
-												task.status = "ARCHIVED";
-											} else if (!task.status) {
-												task.status = "TODO";
-											}
-											delete task.done;
-											delete task.archived;
-										});
-										
-										let p = new Promise(function(resolve3) {
-											(function loopChildren(i) {
-		
-												if (i >= tasks.length) {
-													resolve3();
-												} else {
-													that.addTaskStore(tasks[i]).then(function() {
-														loopChildren(i + 1);
-													});
-												}
-											})(0);
-										});
-										p.then(function() {
-											loopEntries();
-										});
-									});
-
-								});
-							}
-						});
-
-					})();
-
-				});
-				p.then(function() {
-					resolve(tasks);
-				});
-
-			});
-		});
-	}
-	
-	#migrateStoreNodesFromV1toV2() {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			that.directoryHandle.getFileHandle("nodes.json", { create: true }).then(function(treeFileHandle) {
-				treeFileHandle.getFile().then(function(treeFile) {
-					treeFile.text().then(function(treeContents) {
-						let tree = false;
-						if (treeContents) {
-							tree = JSON.parse(treeContents);
-							
-							migrateStoreTreeFromV1toV2(tree);
-							
-							function migrateStoreTreeFromV1toV2(tree, parent) {
-								if (!tree) {
-									return;
-								}
-								return new Promise(function(resolve1, reject1) {
-									(function loopChildren(i) {
-	
-										if (i >= tree.length) {
-											resolve1();
-										} else {
-											if (parent) {
-												tree[i].parent = parent;
-											}
-											that.addNoteStore(tree[i]).then(function() {
-												migrateStoreTreeFromV1toV2(tree[i].children, tree[i]);
-												loopChildren(i + 1);
-											});
-										}
-									})(0);
-								});
-							}
-							
-						}
-		
-						resolve(tree);
-					});
-				});
-			});
-		});
-	}
-	
-/*	#migrateStoreFilesFromV1ToV2() {
-		let that = this;
-
-		return new Promise(function(resolve, reject) {
-			let v2files = new N3Directory(that.directoryHandle, ["files"]);
-			let v3assets = new N3Directory(that.directoryHandle, [that.#imagesFolderName]);		
-		
-			return v2files.getHandle(true).then(function(v2FilesFolderHandle) {
-				return v3assets.getHandle(true).then(function(v3FilesFolderHandle) {
-					return v2files.forEach(function(elementHanlde) {
-						return new Promise(function(resolve1, reject1) {
-							let v2file = new N3File(v2FilesFolderHandle, [elementHanlde.name]);
-							v2file.copyTo(v3FilesFolderHandle).then(function() {
-								resolve1();
-							});
-						});
-					}).then(function() {
-						console.log("migrateStoreFilesFromV1ToV2 done");
-						resolve();
-					});
-				});
-			});
-		
-		});
-	}*/
-	
-	
 	#readConfig() {
 		let that = this;
 		return new Promise(function(resolve, reject) {
@@ -245,66 +64,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		}, null, 2));
 	}
 	
-	#writeNoteData(noteFolderHandle, note) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			let noteDataFileFile = new N3File(noteFolderHandle, [that.#noteDataFileName + ".json"]);
-
-			let noteData = Object.assign({}, note.data);
-			delete noteData.description;
-
-			noteDataFileFile.write(JSON.stringify(noteData, null, 2)).then(function() {
-				resolve();
-
-			}).catch(function(err) {
-				reject(err);
-			});
-
-		});
-	}
-
-	#writeTaskData(taskFolderHandle, task) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			let taskDataFile = new N3File(taskFolderHandle, [that.#taskDataFileName + ".json"]);
-
-			let taskData = Object.assign({}, task);
-			delete taskData.description;
-			delete taskData.title;
-			delete taskData.noteKey;
-
-			taskDataFile.write(JSON.stringify(taskData, null, 2)).then(function(data) {
-				resolve(data);
-
-			}).catch(function(err) {
-				reject(err);
-			});
-
-		});
-	}
-
-	#readTaskData(taskFolderHandle) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			let taskDataFile = new N3File(taskFolderHandle, [that.#taskDataFileName + ".json"]);
-			taskDataFile.textOrFalse().then(function(data) {
-				data = data || "{}";
-				data = JSON.parse(data);
-				resolve(data);
-			}).catch(function(err) {
-				reject(err);
-			});
-
-		});
-
-	}
 
 	#writeNoteExpand(noteFolderHandle, key, expanded) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
-			let noteDataFileFile = new N3File(noteFolderHandle, [that.#noteExpandedFileName + ".json"]);
-			noteDataFileFile.write(JSON.stringify({ expanded: expanded }, null, 2)).then(function(data) {
+			let noteExpandedFile = new N3File(noteFolderHandle, [that.#noteExpandedFileName + ".json"]);
+			noteExpandedFile.write(JSON.stringify({ expanded: expanded }, null, 2)).then(function(data) {
 				resolve(data);
 			}).catch(function(err) {
 				reject(err);
@@ -317,8 +82,8 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteExpandedFileName + ".json"]);
-			noteDataFileFile.textOrFalse().then(function(data) {
+			let noteExpandedFile = new N3File(notesFolderHandle, [that.#noteExpandedFileName + ".json"]);
+			noteExpandedFile.textOrFalse().then(function(data) {
 				data = data || "{\"expanded\": false}";
 				data = JSON.parse(data);
 				resolve(data);
@@ -330,12 +95,12 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 	}
 
-	#readNoteData(notesFolderHandle) {
+	#readNoteMetaData(notesFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteDataFileName + ".json"]);
-			noteDataFileFile.textOrFalse().then(function(data) {
+			let noteMetaDataFile = new N3File(notesFolderHandle, [that.#noteMetaDataFileName + ".json"]);
+			noteMetaDataFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
 				resolve(data);
@@ -347,12 +112,29 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 	}
 
-	#readNoteTitle(notesFolderHandle) {
+	#readNoteTitle(noteFolderHandle) {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteTitleFileName + ".json"]);
-			noteDataFileFile.textOrFalse().then(function(data) {
+			let noteTitleFile = new N3File(noteFolderHandle, [that.#noteTitleFileName + ".json"]);
+			noteTitleFile.textOrFalse().then(function(data) {
+				data = data || "{}";
+				data = JSON.parse(data);
+				resolve(data);
+			}).catch(function(err) {
+				reject(err);
+			});
+
+		});
+	}
+
+
+	#readNoteData(noteFolderHandle) {
+		let that = this;
+		return new Promise(function(resolve, reject) {
+
+			let noteDataFile = new N3File(noteFolderHandle, [that.#noteDataFileName + ".json"]);
+			noteDataFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
 				resolve(data);
@@ -367,8 +149,8 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		let that = this;
 		return new Promise(function(resolve, reject) {
 
-			let noteDataFileFile = new N3File(notesFolderHandle, [that.#noteDescriptionFileName + ".json"]);
-			noteDataFileFile.textOrFalse().then(function(data) {
+			let noteDescriptionFile = new N3File(notesFolderHandle, [that.#noteDescriptionFileName + ".json"]);
+			noteDescriptionFile.textOrFalse().then(function(data) {
 				data = data || "{}";
 				data = JSON.parse(data);
 				resolve(data);
@@ -379,62 +161,137 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 	}
 
+	#writeNoteData(dirHandle, note, modifiedFields) {
+		let modifiedAnythingButNotTitleOrDescription = false;
 
-	#writeNoteTitle(dirHandle, note) {
-		var that = this;
-		let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
-		return noteTitleFile.text().then(function(text) {
-			let oldTitle = JSON.parse(text);
-			let timeStampAsTime = JSJoda.Instant.parse(oldTitle.timeStamp).epochSecond();
-			let prevNoteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + "." + timeStampAsTime + ".json"]);
-			return prevNoteTitleFile.write(JSON.stringify(oldTitle, null, 2));
-		}).then(function() {
-			let title = {
-				title: note.title,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			return noteTitleFile.write(JSON.stringify(title, null, 2));
-		}).catch(function(error) {
-			// not yet exists, create title
-			let title = {
-				title: note.title,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
-			return noteTitleFile.write(JSON.stringify(title, null, 2));
-		});
+		if (modifiedFields) {
+			let modifiedFieldsClone = modifiedFields.map(function(x) {return x;});
+			modifiedFieldsClone = modifiedFieldsClone.filter(function(x) {return x !== "title" && x !== "description";});
+			modifiedAnythingButNotTitleOrDescription = modifiedFieldsClone.length > 0;
+		}
+
+		if (modifiedFields !== undefined && !modifiedAnythingButNotTitleOrDescription) {
+			return Promise.resolve();
+		} else {
+		
+			var that = this;
+			let noteDataFile = new N3File(dirHandle, [that.#noteDataFileName + ".json"]);
+			return noteDataFile.text().then(function(text) {
+				let oldNoteData = JSON.parse(text);
+				let timeStampAsTime = JSJoda.Instant.parse(oldNoteData.timeStamp).epochSecond();
+				let prevNoteDataFile = new N3File(dirHandle, [that.#noteDataFileName + "." + timeStampAsTime + ".json"]);
+				return prevNoteDataFile.write(JSON.stringify(oldNoteData, null, 2));
+			}).then(function() {
+				// new file revision
+				let noteData = Object.assign({}, note.data);
+				delete noteData.description;
+				delete noteData.creationDate;
+
+				noteData.timeStamp = JSJoda.Instant.now().toString();
+				
+				return noteDataFile.write(JSON.stringify(noteData, null, 2));
+			}).catch(function(error) {
+				// not yet exists, create new file
+				let noteData = Object.assign({}, note.data);
+				delete noteData.description;
+				delete noteData.creationDate;
+				noteData.timeStamp = JSJoda.Instant.now().toString();
+
+				let noteDataFile = new N3File(dirHandle, [that.#noteDataFileName + ".json"]);
+				return noteDataFile.write(JSON.stringify(noteData, null, 2));
+			});
+
+		}
 
 	}
 
-	#writeNoteDescription(dirHandle, note) {
-		var that = this;
+	#writeNoteMetaData(noteFolderHandle, note, modifiedFields) {
+		// ignore modifiedFields, save: creationDate 	
+		let that = this;
+		return new Promise(function(resolve, reject) {
+			let noteMetaDataFile = new N3File(noteFolderHandle, [that.#noteMetaDataFileName + ".json"]);
 
-		if (!note.data.description) {
-			note.data.description = "";
+			let noteMetaData = {
+				creationDate: note.data.creationDate
+			};
+
+			noteMetaDataFile.write(JSON.stringify(noteMetaData, null, 2)).then(function() {
+				resolve();
+
+			}).catch(function(err) {
+				reject(err);
+			});
+
+		});
+	}
+
+	
+
+	#writeNoteTitle(dirHandle, note, modifiedFields) {
+		if (modifiedFields && !modifiedFields.includes("title")) {
+			return Promise.resolve();
+		} else {
+		
+			var that = this;
+			let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
+			return noteTitleFile.text().then(function(text) {
+				let oldTitle = JSON.parse(text);
+				let timeStampAsTime = JSJoda.Instant.parse(oldTitle.timeStamp).epochSecond();
+				let prevNoteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + "." + timeStampAsTime + ".json"]);
+				return prevNoteTitleFile.write(JSON.stringify(oldTitle, null, 2));
+			}).then(function() {
+				let title = {
+					title: note.title,
+					timeStamp: JSJoda.Instant.now().toString()
+				};
+				return noteTitleFile.write(JSON.stringify(title, null, 2));
+			}).catch(function(error) {
+				// not yet exists, create title
+				let title = {
+					title: note.title,
+					timeStamp: JSJoda.Instant.now().toString()
+				};
+				let noteTitleFile = new N3File(dirHandle, [that.#noteTitleFileName + ".json"]);
+				return noteTitleFile.write(JSON.stringify(title, null, 2));
+			});
+
 		}
 
-		let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
-		return noteDescriptionFile.text().then(function(text) {
-			let oldDescription = JSON.parse(text);
-			let timeStampAsTime = JSJoda.Instant.parse(oldDescription.timeStamp).epochSecond();
-			let prevNoteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + "." + timeStampAsTime + ".json"]);
-			return prevNoteDescriptionFile.write(JSON.stringify(oldDescription, null, 2));
-		}).then(function() {
-			let description = {
-				description: note.data.description,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			return noteDescriptionFile.write(JSON.stringify(description, null, 2));
-		}).catch(function(error) {
-			// not yet exists, create description
-			let description = {
-				description: note.data.description,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
-			return noteDescriptionFile.write(JSON.stringify(description, null, 2));
-		});
+	}
 
+	#writeNoteDescription(dirHandle, note, modifiedFields) {
+		if (modifiedFields && !modifiedFields.includes("description")) {
+			return Promise.resolve();
+		} else {
+				
+			var that = this;
+
+			if (!note.data.description) {
+				note.data.description = "";
+			}
+
+			let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
+			return noteDescriptionFile.text().then(function(text) {
+				let oldDescription = JSON.parse(text);
+				let timeStampAsTime = JSJoda.Instant.parse(oldDescription.timeStamp).epochSecond();
+				let prevNoteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + "." + timeStampAsTime + ".json"]);
+				return prevNoteDescriptionFile.write(JSON.stringify(oldDescription, null, 2));
+			}).then(function() {
+				let description = {
+					description: note.data.description,
+					timeStamp: JSJoda.Instant.now().toString()
+				};
+				return noteDescriptionFile.write(JSON.stringify(description, null, 2));
+			}).catch(function(error) {
+				// not yet exists, create description
+				let description = {
+					description: note.data.description,
+					timeStamp: JSJoda.Instant.now().toString()
+				};
+				let noteDescriptionFile = new N3File(dirHandle, [that.#noteDescriptionFileName + ".json"]);
+				return noteDescriptionFile.write(JSON.stringify(description, null, 2));
+			});
+		}
 	}
 
 	#readNoteChildrenFile(folderHandle) {
@@ -507,7 +364,6 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		return this.readNotes(that.#trashFolderName);
 	}
 	
-	// TODO: remove description from readNotesTreeStore and readNotesStore
 	readNotesTreeStore(key, dataOrTrashFolderName = this.#dataFolderName) {
 		let that = this;
 		return that.readNotesStore(key, dataOrTrashFolderName).then(function(children) {
@@ -539,18 +395,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 
 			let notesFolder = new N3Directory(that.directoryHandle, [dataOrTrashFolderName, that.#notesFolderName]);
 			notesFolder.getHandle(false).then(function(notesFolderHandle) {
-
-				(function() {
-					return new Promise(function(resolveI, rejectI) {
-						if (key) {
-							notesFolderHandle.getDirectoryHandle(key, { create: false }).then(function(noteFolderHandler) {
-								resolveI(noteFolderHandler);
-							});
-						} else {
-							resolveI(notesFolderHandle);
-						}
-					});
-				})().then(function(childrenContainerFolderHandle) {
+				that.#getNoteFolderHandle(notesFolderHandle, key).then(function(childrenContainerFolderHandle) {
 					that.#readNoteChildrenFile(childrenContainerFolderHandle).then(function(childrenKeys) {
 						let childrenPromises = childrenKeys.map(function(childrenKey) {
 							return notesFolderHandle.getDirectoryHandle(childrenKey, { create: false }).then(function(noteFolderHandle) {
@@ -565,8 +410,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 						})
 
 					});
-
-				});
+				});			
 			}).catch(function(error) {
 				resolve([]);
 			});
@@ -574,135 +418,15 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 	}
 
-	#writeTaskTitle(dirHandle, task) {
-		var that = this;
-		let titleFile = new N3File(dirHandle, [that.#taskTitleFileName + ".json"]);
-		return titleFile.text().then(function(text) {
-			let oldTitle = JSON.parse(text);
-			let timeStampAsTime = JSJoda.Instant.parse(oldTitle.timeStamp).epochSecond();
-			let prevNoteTitleFile = new N3File(dirHandle, [that.#taskTitleFileName + "." + timeStampAsTime + ".json"]);
-			return prevNoteTitleFile.write(JSON.stringify(oldTitle, null, 2));
-		}).then(function() {
-			let title = {
-				title: task.title,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			return titleFile.write(JSON.stringify(title, null, 2));
-		}).catch(function(error) {
-			// not yet exists, create title
-			let title = {
-				title: task.title,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			let titleFile = new N3File(dirHandle, [that.#taskTitleFileName + ".json"]);
-			return titleFile.write(JSON.stringify(title, null, 2));
-		});
-	}
-
-	#readTaskTitle(taskFolderHandle) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			let titleFile = new N3File(taskFolderHandle, [that.#taskTitleFileName + ".json"]);
-			titleFile.textOrFalse().then(function(data) {
-				data = data || "{}";
-				data = JSON.parse(data);
-				resolve(data);
-			}).catch(function(err) {
-				reject(err);
-			});
-
-		});
-	}
-
-	#writeTaskDescription(dirHandle, task) {
-		var that = this;
-
-		if (!task.description) {
-			task.description = "";
-		}
-
-		let descriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + ".json"]);
-		return descriptionFile.text().then(function(text) {
-			let oldDescription = JSON.parse(text);
-			let timeStampAsTime = JSJoda.Instant.parse(oldDescription.timeStamp).epochSecond();
-			let prevNoteDescriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + "." + timeStampAsTime + ".json"]);
-			return prevNoteDescriptionFile.write(JSON.stringify(oldDescription, null, 2));
-		}).then(function() {
-			let description = {
-				description: task.description,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			return descriptionFile.write(JSON.stringify(description, null, 2));
-		}).catch(function(error) {
-			// not yet exists, create description
-			let description = {
-				description: task.description,
-				timeStamp: JSJoda.Instant.now().toString()
-			};
-			let descriptionFile = new N3File(dirHandle, [that.#taskDescriptionFileName + ".json"]);
-			return descriptionFile.write(JSON.stringify(description, null, 2));
-		});
-
-	}
-
-	#readTasksDesription(taskFolderHandle) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-
-			let descriptionFile = new N3File(taskFolderHandle, [that.#taskDescriptionFileName + ".json"]);
-			descriptionFile.textOrFalse().then(function(data) {
-				data = data || "{}";
-				data = JSON.parse(data);
-				resolve(data);
-			}).catch(function(err) {
-				reject(err);
-			});
-
-		});
-	}
-
-	addTaskStore(task) {
-		let that = this;
-		let taskFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, task.noteKey, that.#tasksFolderName, task.id]);
-		return taskFolder.getHandle(true).then(function(dirHandle) {
-			return that.#writeTaskData(dirHandle, task).then(function() {
-				return that.#writeTaskTitle(dirHandle, task).then(function() {
-					return that.#writeTaskDescription(dirHandle, task).then(function() {
-						console.log("N3StoreServiceFileSystem.addTaskStore " + task.id + " for note " + task.noteKey);
-					});
+	#getNoteFolderHandle(notesFolderHandle, key) {
+		return new Promise(function(resolveI, rejectI) {
+			if (key) {
+				notesFolderHandle.getDirectoryHandle(key, { create: false }).then(function(noteFolderHandler) {
+					resolveI(noteFolderHandler);
 				});
-			});
-		});
-	}
-
-	moveTaskToTrashStore(task) {
-		let that = this;
-
-		let taskFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, task.noteKey, that.#tasksFolderName, task.id]);
-		let noteTasksTrashFolder = new N3Directory(that.directoryHandle, [that.#trashFolderName, that.#notesFolderName, task.noteKey, that.#tasksFolderName]);
-
-		return taskFolder.copyTo(noteTasksTrashFolder).then(function() {
-			let noteTasksFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, task.noteKey, that.#tasksFolderName]);
-			return noteTasksFolder.getHandle(false).then(function(noteTasksFolderHandle) {
-				return noteTasksFolderHandle.removeEntry(task.id, { recursive: true });
-			});
-
-		});
-	}
-
-	// TODO: rebuild like node: new method for title and description
-	modifyTaskStore(task) {
-		let that = this;
-		let taskFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, task.noteKey, that.#tasksFolderName, task.id]);
-		return taskFolder.getHandle(true).then(function(dirHandle) {
-			return that.#writeTaskData(dirHandle, task).then(function() {
-				return that.#writeTaskTitle(dirHandle, task).then(function() {
-					return that.#writeTaskDescription(dirHandle, task).then(function() {
-						console.log("N3StoreServiceFileSystem.modifyTaskStore " + task.id + " for note " + task.noteKey);
-					});
-				});
-			});
+			} else {
+				resolveI(notesFolderHandle);
+			}
 		});
 	}
 
@@ -712,12 +436,14 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 			let noteFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, note.key]);
 			noteFolder.getHandle(true).then(function(dirHandle) {
 
-				that.#writeNoteData(dirHandle, note).then(function() {
-					that.#writeNoteTitle(dirHandle, note).then(function() {
-						that.#writeNoteDescription(dirHandle, note).then(function() {
-							that.#writeNoteChildrenFile(note.parent).then(function() {
-								console.log("N3StoreServiceFileSystem.addNoteStore " + note.key);
-								resolve();
+				that.#writeNoteMetaData(dirHandle, note).then(function() {
+					that.#writeNoteData(dirHandle, note).then(function() {
+						that.#writeNoteTitle(dirHandle, note).then(function() {
+							that.#writeNoteDescription(dirHandle, note).then(function() {
+								that.#writeNoteChildrenFile(note.parent).then(function() {
+									console.log("N3StoreServiceFileSystem.addNoteStore " + note.key);
+									resolve();
+								});
 							});
 						});
 					});
@@ -732,31 +458,19 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		return new Promise(function(resolve, reject) {
 			let noteFolder = new N3Directory(that.directoryHandle, [that.#dataFolderName, that.#notesFolderName, note.key]);
 			noteFolder.getHandle(true).then(function(dirHandle) {
-
-				(function() {
-					return new Promise(function(resolveI, rejectI) {
-						if (modifiedFields.includes("title")) {
-							that.#writeNoteTitle(dirHandle, note).then(function() {
-								resolveI();
+				// at the moment it's only creationdate... that.#writeNoteMetaData(dirHandle, note, modifiedFields).then(function() {
+					that.#writeNoteData(dirHandle, note, modifiedFields).then(function() {
+						that.#writeNoteTitle(dirHandle, note, modifiedFields).then(function() {
+							that.#writeNoteDescription(dirHandle, note, modifiedFields).then(function() {
+								that.#writeNoteChildrenFile(note.parent).then(function() {
+									console.log("N3StoreServiceFileSystem.modifyNoteStore " + note.key);
+									resolve();
+								});
 							});
-						} else {
-							resolveI();
-						}
-					});
-				})().then(function() {
-					if (modifiedFields.includes("description")) {
-						that.#writeNoteDescription(dirHandle, note).then(function() {
-							console.log("N3StoreServiceFileSystem.modifyNote " + note.key);
-							resolve();
 						});
-					} else {
-						console.log("N3StoreServiceFileSystem.modifyNote " + note.key);
-						resolve();
-					}
-				});
-
+					});
+				// });
 			});
-
 		});
 	}
 
@@ -884,42 +598,6 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 		});
 	}
 
-	// TODO: refactor to remove tasks one by one
-	deleteTasks(noteKey) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			that.directoryHandle.getDirectoryHandle("tasks", { create: false }).then(function(tableDirHandle) {
-				tableDirHandle.removeEntry(noteKey + ".json").then(function() {
-					console.log("N3Store.deleteTasks, for node key: " + noteKey);
-					resolve();
-				}, function(error) {
-					// no NodeTasks file, ignore error
-					resolve();
-				});
-			});
-		});
-
-	}
-
-	writeTasksStore(params, tasksToSave) {
-		let that = this;
-		return new Promise(function(resolve, reject) {
-			let noteKey = params.noteKey;
-			that.directoryHandle.getDirectoryHandle("tasks", { create: true }).then(function(tableDirHandle) {
-				tableDirHandle.getFileHandle(noteKey + ".json", { create: true }).then(function(tasksFileHandle) {
-					tasksFileHandle.createWritable().then(function(writable) {
-						writable.write(JSON.stringify(tasksToSave, null, 2)).then(function() {
-							writable.close().then(function() {
-								resolve();
-							});
-						});
-					});
-				});
-			}).catch(function(error) {
-				reject(error);
-			});
-		});
-	}
 
 	writeImageStore(ownerTyp, ownerId, fileName, blob) {
 		let that = this;
@@ -965,95 +643,29 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 			});
 		});
 	}
-
-	readTasksStore(dataOrTrashFolderName = this.#dataFolderName) {
-		let that = this;
-		let tasks = [];
-		return new Promise(function(resolve, reject) {
-
-			let notesFolder = new N3Directory(that.directoryHandle, [dataOrTrashFolderName, that.#notesFolderName]);
-			notesFolder.getHandle(false).then(function(notesFolderHandle) {
-				let notesIterator = notesFolderHandle.values();
-				let notesIteratorPromise = new Promise(function(resolveN, rejectN) {
-					(function loopNotes() {
-						notesIterator.next().then(function(element) {
-							if (element.done) {
-								resolveN();
-							} else {
-								if (element.value.kind == "directory") {
-									let noteFolderHandle = element.value;
-									noteFolderHandle.getDirectoryHandle("tasks", { create: true }).then(function(tasksFolderHandle) {
-										let tasksIterator = tasksFolderHandle.values();
-										let p = new Promise(function(resolvep) {
-											(function loopTasks() {
-												tasksIterator.next().then(function(element) {
-													if (element.done) {
-														resolvep();
-													} else {
-														let taskFolderHandle = element.value;
-														that.#readTask(taskFolderHandle).then(function(task) {
-															task.noteKey = noteFolderHandle.name;
-															tasks.push(task);
-															loopTasks();
-														});
-													}
-												});
-											})();
-										});
-										p.then(function() {
-											loopNotes();
-										});
-									});
-								} else {
-									loopNotes();
-								}
-							}
-						});
-
-					})();
-				});
-				notesIteratorPromise.then(function() {
-					resolve(tasks);
-				});
-			}).catch(function(error) {
-				resolve(tasks);
-			});
-		});
-	}
-
-	#readTask(taskFolderHandle) {
-		let that = this;
-		return that.#readTaskData(taskFolderHandle).then(function(task) {
-			return that.#readTaskTitle(taskFolderHandle).then(function(title) {
-				return that.#readTasksDesription(taskFolderHandle).then(function(description) {
-					task.title = title.title;
-					task.description = description.description;
-					return task;
-				});
-			});
-		});
-	}
-
 	#readNote(noteFolderHandle) {
 		let that = this;
-		return that.#readNoteData(noteFolderHandle).then(function(data) {
-			return that.#readNoteTitle(noteFolderHandle).then(function(title) {
-				return that.#readNoteDesription(noteFolderHandle).then(function(description) {
-					return that.#readNoteChildrenFile(noteFolderHandle).then(function(childrenChildrenKeys) {
-						return that.#readNoteExpand(noteFolderHandle).then(function(expanded) {
-							let note = {
-								key: noteFolderHandle.name,
-								lazy: true,
-								expanded: expanded.expanded,
-								title: title.title,
-								data: data
-
-							};
-							note.data.description = description.description;
-							if (childrenChildrenKeys.length == 0) {
-								note.children = [];
-							}
-							return note;
+		return that.#readNoteMetaData(noteFolderHandle).then(function(metaData) {
+			return that.#readNoteData(noteFolderHandle).then(function(data) {
+				return that.#readNoteTitle(noteFolderHandle).then(function(title) {
+					return that.#readNoteDesription(noteFolderHandle).then(function(description) {
+						return that.#readNoteChildrenFile(noteFolderHandle).then(function(childrenChildrenKeys) {
+							return that.#readNoteExpand(noteFolderHandle).then(function(expanded) {
+								let note = {
+									key: noteFolderHandle.name,
+									lazy: true,
+									expanded: expanded.expanded,
+									title: title.title,
+									data: data
+								};
+								note.data.description = description.description;
+								note.data.creationDate = metaData.creationDate;
+								
+								if (childrenChildrenKeys.length == 0) {
+									note.children = [];
+								}
+								return note;
+							});
 						});
 					});
 				});

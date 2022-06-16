@@ -1,19 +1,15 @@
 /*
 
-TODO 
+TODO
 
- - paste img from weg
- - link note, link task
- - change sttaus with comment ? task status change history
+ - link note, link task!!!!!!!!! 
+ - all files encryption
+ - google drive storage
+ - plan 3 tasks for today - choose from list (https://www.youtube.com/watch?v=oJTiq-Pqp9k)
  - file strucure ändern - bei Google
- - priority: Is Important, Is urgent, like/don't like -  wie in amplenote, score todos (like amlenote...) opcja: push down (score manipulation) to DATE, push to top (score)
-				Eisenhower Matrix - https://www.amplenote.com/blog/todo_list_auto_sorts_with_eisenhower_matrix
-				https://todoist.com/de/help/articles/eisenhower-matrix-with-todoist
-				new status: delagated (warten auf Antwort?)
  - ctrl-s to save - nach react
-  - links von notes to tasks, notes to notes usw. - bacllinks anzeigen
+ - links von notes to tasks, notes to notes usw. - bacllinks anzeigen
  - file upload implmentieren - erst Drag & Drop in tree
- - versionnierung und dann save buttons entfernen -  - versions tylko dla description i title ale niezaleznie
  - Opcja move/copy task (dla note jest z drzewka)
  - Widok taskow lista: sortowanie, filtrowanie
  - Suche opcje: szukaj historie, szukaj skasowane
@@ -22,10 +18,8 @@ TODO
  - Tags colors
  - changes log - welche nodes/tasks wurden geändert für nachverfolgung von Arbeit
  - better filters - save, add, remove 
- - recuring tasks? reopen? deadline? date - kann eine Woche/Monat/Jahr sein (von - bis) 
- - subtasks - checkliste	  
+ - recuring tasks? reopen? deadline? date - kann eine Woche/Monat/Jahr sein (von - bis) 	  
  - Ocr with tesseractjs
- - bulma theme ? better change to symantic UI  
  - export als ZIP (semantic UI first)
  - choose folder list (semantic UI first)
   
@@ -33,7 +27,6 @@ TODO
  - close all nodes/expande all nodes utton fpr tree
  - dynamische grupierung
  - consolidate store events - gleiche events mit gleich wparameter müssen nicht wiederhol1t werden! - veielleicht brauche ich merhere asyncqueues? 
- - versionnierung alle Änderungen?
  - display orphan files als liste
  - daten strzuktur version einbauen --! - bei start konvertierung zum neue struktur!
 	  --> noch besser: foldere mit versionnummer und in xml version nummer
@@ -41,7 +34,6 @@ TODO
  - timer - worjlking on Task/Node - wird in Journal siechtbar - mit kommentar option - wenn man nur auf kjunde starten und keine unteraufagbe angibt ->erst log 
  - https://yuku.takahashi.coffee/textcomplete/
  - tree- icon in tree
- - neue TAB "backlinks"
  - files
  - drag and drop files in tinymce
  - jpournal?
@@ -94,91 +86,32 @@ TODO
 
 */
 
+
 window.n3 = window.n3 || {};
 window.n3.task = window.n3.task || {
-	"tinymce": false,
-	"validate": {},
 	"priority": [
 		{
-			id: 1,
-			text: "Low"
+			id: 3,
+			text: "Urgent &amp; Important",
+			selected: false
 		},
 		{
 			id: 2,
-			text: "Medium"
+			text: "Urgent",
+			selected: false
 		},
 		{
-			id: 3,
-			text: "High"
+			id: 1,
+			text: "Important",
+			selected: false
+		},
+		{
+			id: 0,
+			text: "No priority",
+			selected: true
 		}
 	],
-	"tagsList": [],
-	"status": [
-		{
-			id: "TODO",
-			intern: "TOBEDONE",
-			text: "Todo",
-			cssClass: "is-primary",
-			icon: "",
-			selected: true
-		},
-		{
-			id: "DOING",
-			intern: "TOBEDONE",
-			text: "In Progress",
-			cssClass: "is-primary",
-			icon: ""
-		},
-		{
-			id: "SCHEDULED",
-			intern: "TOBEDONE",
-			text: "Scheduled",
-			cssClass: "is-primary",
-			icon: ""
-		},
-		{
-			id: "WAITING LABOR",
-			intern: "TOBEDONE",
-			text: "Waiting on person",
-			cssClass: "is-primary",
-			icon: ""
-		},
-		{
-			id: "WAITING QS",
-			intern: "TOBEDONE",
-			text: "Waiting QS Installation",
-			cssClass: "is-primary",
-			icon: ""
-		},
-		{
-			id: "WAITING PROD",
-			intern: "TOBEDONE",
-			text: "Waiting Prod installation",
-			cssClass: "is-primary",
-			icon: ""
-		},
-		{
-			id: "DONE",
-			intern: "DONE",
-			text: "Done",
-			cssClass: "is-outlined",
-			icon: ""
-		},
-		{
-			id: "CANCELED",
-			intern: "DONE",
-			text: "Canceled",
-			cssClass: "is-danger is-outlined",
-			icon: ""
-		},
-		{
-			id: "ARCHIVED",
-			intern: "DONE",
-			text: "Archived",
-			cssClass: "is-success",
-			icon: "fas fa-check"
-		}
-	]
+	"tagsList": []
 };
 window.n3.node = window.n3.node || {
 	"tinymce": false
@@ -190,60 +123,43 @@ window.n3.action = window.n3.action || {
 };
 
 window.n3.localFolder = {};
-window.n3.tasks = [];
-window.n3.tabulator = false;
 
-let searchService;
 let storeService;
 
 $(function() {
-
+	
 	window.n3.localFolder.init();
 
-	window.n3.action.handlers["refresh-tasks"] = window.n3.refreshNodeTasksFilter;
+
 	window.n3.action.handlers["activate-node"] = window.n3.action.activateNode;
-	window.n3.action.handlers["searchresults-activate-node"] = window.n3.action.activateNodeFromSearchResults;
-	window.n3.action.handlers["searchresults-open-task"] = window.n3.action.openTaskDetailsFromSaecrhResults;
 	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.select;
 	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
 	window.n3.action.handlers["add-node"] = window.n3.node.add;
-	window.n3.action.handlers["add-task"] = window.n3.task.add;
-	window.n3.action.handlers["dalete-task-confirm"] = window.n3.task.delete;
 	window.n3.action.handlers["delete-node-confirm"] = window.n3.node.delete;
-	window.n3.action.handlers["change-tab"] = window.n3.ui.changeTab;
 	window.n3.action.handlers["open-modal"] = window.n3.ui.openModal;
 	window.n3.action.handlers["open-dropdown"] = window.n3.ui.openDropDown;
-	window.n3.action.handlers["save-task"] = window.n3.task.save;
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
-	window.n3.action.handlers["open-modal-delete-task-confirm"] = window.n3.action.openModalDeleteTaskConfirm;
-	window.n3.action.handlers["taskeditor-on-open"] = window.n3.modal.onOpenTaskDetails;
-	window.n3.action.handlers["task-duration-validate"] = window.n3.task.validate.duration;
-	window.n3.action.handlers["searchdialog-on-open"] = window.n3.ui.openSearchDialog;
-
 
 	$(document).on("click", "[data-action]", function(event) {
 		let targetElement = event.target || event.srcElement;
 		let $trigger = this;
 		let noteKey = undefined;
-		let taskId = undefined;
+		
+		//let $nodeDataOwner = targetElement.closest("[data-owner='node']");
+		//if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
+		//	noteKey = $nodeDataOwner.dataset.notekey;
+		//}
 
-		let $nodeDataOwner = targetElement.closest("[data-owner='node']");
-		if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
-			noteKey = $nodeDataOwner.dataset.notekey;
-		}
-
-		let $ticketDataOwner = targetElement.closest("[data-owner='task']");
+		let $ticketDataOwner = targetElement.closest("[data-owner='node']");
 		if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
 			noteKey = $ticketDataOwner.dataset.notekey;
 		}
-		if ($ticketDataOwner && $ticketDataOwner.dataset.taskid) {
-			taskId = $ticketDataOwner.dataset.taskid;
-		}
+	
 
 
 		let action = $trigger.dataset.action;
 		if (window.n3.action.handlers[action]) {
-			if (window.n3.action.handlers[action](noteKey, taskId, $trigger)) {
+			if (window.n3.action.handlers[action](noteKey, $trigger)) {
 				let $modal = $trigger.closest(".modal");
 				if ($modal) {
 					window.n3.modal.close($modal, true);
@@ -253,7 +169,7 @@ $(function() {
 
 	});
 
-	$(document).on("blur", "[data-noteeditor] [name='title']", function() {
+	$(document).on("change", "[data-noteeditor] [name='title']", function() {
 		let $nodeDataOwner = this.closest("[data-owner='node']");
 		let noteKey = false;
 		if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
@@ -270,16 +186,193 @@ $(function() {
 		}
 	});
 
+	$(document).on("click", "[data-attachment]", function() {
+		// TODO not ready...
+		console.log(this);
+	});
+
+	$(document).on("click", "[data-noteeditor] [name='title']", function() {
+		$(this).select();
+	});
+
+	$(document).on("change", "[data-is-task]", function() {
+		const isTask = $(this).prop("checked");
+
+		if (isTask) {
+			$("[data-done]").show();
+			$("[data-priority]").show();
+		} else {
+			$("[data-done]").hide();
+			$("[data-priority]").hide();
+		}
+
+		const newType = isTask ? "task" : "note";
+
+		let $nodeDataOwner = this.closest("[data-owner='node']");
+		let noteKey = false;
+		if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
+			noteKey = $nodeDataOwner.dataset.notekey;
+		}
+		if (noteKey) {
+			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+			if (!node.data.type || node.data.type !== newType) {
+				node.data.type = newType;
+				node.checkbox = node.data.type === "task";
+
+				let parentNode = node;
+				while (parentNode) {
+					parentNode.renderTitle();
+					parentNode = parentNode.parent;
+				}
+
+				storeService.modifyNote(node, ["type"]).then(function() { });
+			}
+		}
+	});
+
+	$(document).on("change", "[data-done] [name='done']", function() {
+		let $nodeDataOwner = this.closest("[data-owner='node']");
+		let noteKey = false;
+		if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
+			noteKey = $nodeDataOwner.dataset.notekey;
+		}
+		if (noteKey) {
+			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+
+			node.data.done = $(this).prop("checked");
+			node.selected = node.data.done;
+
+			let parentNode = node;
+			while (parentNode) {
+				parentNode.renderTitle();
+				parentNode = parentNode.parent;
+			}
+			
+			storeService.modifyNote(node, ["done"]).then(function() { });
+		}
+	});
+
+	$(document).on("keyup", "[data-search] input", function() {
+
+		if ($(this).val().trim().length > 0) {
+			$("[data-search] i").removeClass("search");
+			$("[data-search] i").addClass("delete");
+		} else {
+			$("[data-search] i").removeClass("delete");
+			$("[data-search] i").addClass("search");
+		}
+
+		window.n3.filterTree();
+	});
+	
+	$(document).on("click", "[data-search] i.delete", function() {
+		$("[data-search] input").val("");
+		$("[data-search] input").trigger("keyup");
+	});
+
+	$(document).on("click", "[data-backlink-node]", function() {
+		if (this &&  this.dataset && this.dataset.backlinkNode) {
+			let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(this.dataset.backlinkNode); 
+			window.n3.node.activateNode(note);
+		}
+	});
+	
 
 
-	// TODO: it doesn't work...'
+	let filterDropDown = $("[data-filter]").dropdown();
+	// TODO: tags
+	// filterDropDown.dropdown('change values', [{name: "Aaaa", value: "aaaa", selected: false}])
+	filterDropDown.dropdown("setting", "onChange", function(value, text, $choice) {
+		$("[data-filter]").dropdown("hide");
+
+		window.n3.filterTree();
+
+	});
+
+
+	// TODO: does it work?
 	window.addEventListener("beforeunload", function(event) {
 		window.n3.ui.onUnload(event);
 	});
 
-	window.n3.ui.initTaskTab();
-
 });
+
+window.n3.filterTree = function() {
+
+	let filterValue = $("[data-filter]").dropdown("get value");
+	let filters = [];
+	if (filterValue.trim().length > 0) {
+		filters = filterValue.trim().split(",");
+	}
+
+	let searchText = $("[data-search] input").val();
+
+
+	if (filters.length == 0 && searchText.trim().length == 0) {
+		$.ui.fancytree.getTree("[data-tree]").clearFilter();
+	} else {
+
+		let searchResults = storeService.search(searchText);
+		let foundNoteKeys = [];
+
+		if (searchResults.length > 0) {
+			foundNoteKeys = searchResults[0].result.map(function(searchResult) {
+				return searchResult.id;
+			});
+		}
+
+		$.ui.fancytree.getTree("[data-tree]").filterNodes(function(node) {			
+			let show = true;
+
+			let showTypes = [];
+			if (filters.includes("tasks")) {
+				showTypes.push("task");
+			}
+			if (filters.includes("notes")) {
+				showTypes.push("note");
+			}
+			if (showTypes.length > 0) {
+				show = show && showTypes.includes(node.data.type);
+			}
+			
+
+			let showDone = [];
+			if (filters.includes("done")) {
+				showDone.push(true);
+			}
+			if (filters.includes("not-done")) {
+				showDone.push(false);
+			}
+			if (showDone.length > 0) {
+				show = show && node.data.type === "task" && showDone.includes(node.data.done);
+			}
+			
+			let showPriority = [];
+			if (filters.includes("priority-3")) {
+				showPriority.push("3");
+			}
+			if (filters.includes("priority-2")) {
+				showPriority.push("2");
+			}
+			if (filters.includes("priority-1")) {
+				showPriority.push("1");
+			}
+			if (filters.includes("priority-0")) {
+				showPriority.push("0");
+			}
+			if (showPriority.length > 0) {
+				show = show && node.data.type === "task" && showPriority.includes(node.data.priority + "");
+			}
+
+			if (searchText.trim().length > 0) {
+				show = show && foundNoteKeys.includes(node.key);
+			}
+
+			return show;
+		});
+
+	}
+}
 
 window.n3.ui.onUnload = function(event) {
 	let $nodeDataOwner = $("[data-owner='node']");
@@ -307,123 +400,30 @@ window.n3.ui.onUnload = function(event) {
 }
 
 
-window.n3.ui.openSearchDialog = function(noteKey, taskId, $trigger) {
-	let $searchInput = $("[data-searchinput]", $($trigger));
-	$searchInput.focus();
-	let $resultsList = $("[data-searchresultslist]", $($trigger));
-	$searchInput.on("keyup", function(event) {
-		let e = event || window.event;
 
-		let searchText = $(this).val();
-		let searchResults = searchService.getIndex().search(searchText, { index: "content", enrich: true });
-		$resultsList.html("");
-		if (searchResults && searchResults.length > 0) {
-			searchResults[0].result.forEach(function(searchResult) {
-				let noteKey;
-				if (searchResult.doc.type === "note") {
-					noteKey = searchResult.id;
-				} else {
-					noteKey = searchResult.doc.noteKey;
-				}
-				let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-				let breadCrumb = window.n3.node.getNodeTitlePath(node, true);
-
-
-				if (searchResult.doc.type === "note") {
-					$resultsList.append("<div class='panel-block'><a href='#' class='is-active' data-action='searchresults-activate-node' data-owner='node' data-noteKey='" + searchResult.id + "'><span class='panel-icon'><span class='fancytree-icon'></span></span> " + searchResult.doc.title + "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
-				} else {
-					$resultsList.append("<div class='panel-block'><a href='#' class='panel-block is-active' data-action='searchresults-open-task' data-owner='task' data-taskId='" + searchResult.id + "'><span class='panel-icon'><i class='fa-solid fa-list-check'></i></span> " + searchResult.doc.title + "</a><div class='breadcrumb'>" + breadCrumb + "</div></div>");
-				}
-			});
-		}
-
-	});
-
-}
-
-window.n3.ui.initTaskTab = function() {
-
-	let html = "";
-
-	window.n3.task.status.forEach(function(state) {
-		html += " ";
-		html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '> <label class='checkbox' data-action='refresh-tasks'> <input type='checkbox' data-status='true' name='" + state.id + "' checked>";
-		if (state.icon) {
-			html += "	<span class='icon'>";
-			html += "		<i class='" + state.icon + "'></i>";
-			html += "	</span>";
-		}
-		html += "	<span> " + state.text + "</span>";
-		html += "</label></span>";
-	});
-
-
-	$("[data-statusfilter]").html(html);
-}
-
-
-window.n3.task.add = function(noteKey, taskId, $trigger) {
-	window.n3.modal.openTaskDetails({ noteKey: noteKey });
-}
-
-
-window.n3.action.openModalDeleteTaskConfirm = function(noteKey, taskId, $trigger) {
-	window.n3.action.closeDialog(noteKey, taskId, $trigger)
-	if (taskId) {
-		let deleteTaskCondirmModal = document.getElementById("n3-delete-task-trigger");
-		deleteTaskCondirmModal.dataset.notekey = noteKey;
-		deleteTaskCondirmModal.dataset.taskid = taskId;
-		window.n3.modal.open(deleteTaskCondirmModal);
-	}
-};
-
-window.n3.action.closeDialog = function(noteKey, taskId, $trigger) {
+window.n3.action.closeDialog = function(noteKey, $trigger) {
 	let $modal = $trigger.closest('.modal');
 	window.n3.modal.close($modal, true);
 }
 
-window.n3.action.activateNodeFromSearchResults = function(noteKey, taskId, $trigger) {
-	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-	node.setActive();
-	window.n3.action.closeDialog(noteKey, taskId, $trigger);
-};
-
-window.n3.action.openTaskDetailsFromSaecrhResults = function(noteKey, taskId, $trigger) {
-	let task = window.n3.tasks.find(function(task) {
-		return task.id == taskId
-	});
-	noteKey = task.noteKey;
-	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-	node.setActive();
-	window.n3.modal.openTaskDetails({ id: taskId, noteKey: noteKey });
-	window.n3.action.closeDialog(noteKey, taskId, $trigger);
-}
 
 window.n3.action.activateNode = function(noteKey) {
 	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
 	node.setActive();
 };
 
-window.n3.ui.openDropDown = function(noteKey, taskId, $trigger) {
+window.n3.ui.openDropDown = function(noteKey, $trigger) {
 	$trigger.classList.toggle('is-active');
 };
 
 
-window.n3.ui.openModal = function(noteKey, taskId, $trigger) {
+window.n3.ui.openModal = function(noteKey, $trigger) {
 	let modal = $trigger.dataset.target;
 	let $target = document.getElementById(modal);
 
 	let $nodeDataOwner = $trigger.closest("[data-owner='node']");
 	if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
 		$target.dataset.notekey = $nodeDataOwner.dataset.notekey;
-	}
-
-	let $ticketDataOwner = $trigger.closest("[data-owner='task']");
-	if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
-		$target.dataset.notekey = $ticketDataOwner.dataset.notekey;
-	}
-	if ($ticketDataOwner && $ticketDataOwner.dataset.taskid) {
-		$target.dataset.taskid = $ticketDataOwner.dataset.taskid;
 	}
 
 	window.n3.modal.open($target);
@@ -441,21 +441,6 @@ window.n3.ui.openModal = function(noteKey, taskId, $trigger) {
 	}
 }
 
-
-window.n3.ui.changeTab = function(noteKey, taskId, $trigger) {
-	let targetTabName = $trigger.dataset.target;
-	$("[data-tab]").hide();
-	let tab = $("[data-tabname='" + targetTabName + "']");
-	tab.show();
-
-	$("[data-tabtrigger]").removeClass("is-active");
-	let $tabLi = $trigger.closest("[data-tabtrigger]");
-	$($tabLi).addClass("is-active");
-	if (tab[0].dataset.ontabopen) {
-		executeFunctionByName(tab[0].dataset.ontabopen, window, $trigger);
-	}
-}
-
 function executeFunctionByName(functionName, context /*, args */) {
 	let args = Array.prototype.slice.call(arguments, 2);
 	let namespaces = functionName.split(".");
@@ -466,12 +451,8 @@ function executeFunctionByName(functionName, context /*, args */) {
 	return context[func].apply(context, args);
 }
 
-window.n3.ui.onOpenTabTasks = function($trigger) {
-	let $formTasktable = $("[data-form='tasks-table']");
-	window.n3.task.getTagsFilter($formTasktable);
-}
 
-window.n3.node.delete = function(noteKey, taskId, $trigger) {
+window.n3.node.delete = function(noteKey, $trigger) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
 		let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
@@ -482,22 +463,6 @@ window.n3.node.delete = function(noteKey, taskId, $trigger) {
 
 
 		storeService.moveNoteToTrash(node).then(function() {
-
-			// remove tasks from list
-			node.visit(function(node) {
-
-				let taskIndexToRemove = -1;
-				do {
-					taskIndexToRemove = window.n3.tasks.findIndex(function(task) {
-						return task.noteKey == node.key
-					});
-					if (taskIndexToRemove > -1) {
-						window.n3.tasks.splice(taskIndexToRemove, 1);
-					}
-				} while (taskIndexToRemove > -1);
-
-			});
-
 			node.remove();
 
 			if (parentNode.title != "root") {
@@ -535,13 +500,19 @@ window.n3.localFolder.select = function() {
 			}).then(function(dir) {
 
 				window.n3.localFolder.queryVerifyPermission(dir).then(function() { });
+			}).catch(function(err) {
+				window.n3.modal.closeAll(true);
+				window.n3.modal.open(document.getElementById("n3-table-noAccessError-local-folder-modal"));
+				let a = $("[data-folderaccesserror]");
+				a.html(err + "");
 			});
 		});
 	} catch (err) {
 		console.log(err);
 		window.n3.modal.closeAll(true);
-		document.getElementById("n3-folder-access-error").innerHTML = err;
 		window.n3.modal.open(document.getElementById("n3-table-noAccessError-local-folder-modal"));
+		let a = $("[data-folderaccesserror]");
+		a.html(err + "");
 	}
 }
 
@@ -562,9 +533,7 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 		})(dir).then(function(dir) {
 			window.n3.localFolder.verifyPermission(dir, true).then(function(granted) {
 				if (granted) {
-					$(".n3-no-localfolder").removeClass("n3-no-localfolder");
-					searchService = new N3SearchServiceFlexSearch(dir);
-					storeService = new N3StoreServiceFileSystem(dir, searchService);
+					storeService = new N3StoreServiceFileSystem(dir);
 
 
 					set("localFolder", dir).then(function() {
@@ -574,25 +543,35 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 					window.n3.modal.closeAll(true);
 
 					storeService.migrateStore().then(function() {
-						storeService.loadTasks().then(function(tasks) {
-							window.n3.initTaskTable();
-							storeService.loadNotesTree().then(function(tree) {
-								searchService.addNotesTree(tree).then(function() {
-									window.n3.tasks.splice(0, window.n3.tasks.length, ...tasks);
+					
+						storeService.loadNotesTree().then(function(tree) {
 
-									window.n3.tasks.forEach(function(task) {
-										searchService.addTask(task).then(function() {
-											// just continue async
-										});
-									});
+							tree = setCheckBoxFromTyp(tree);
 
-									// TODO init UI method?
-									let form = $("[data-noteeditor]");
-									window.n3.node.getNodeHTMLEditor(form).then(function(data) {
-										window.n3.initFancyTree(tree).then(function() {
-											resolve(true);
-										});
-									});
+							function setCheckBoxFromTyp(tree) {
+								if (!tree) {
+									return tree;
+								}
+
+								for (let i = 0; i < tree.length; i++) {
+									tree[i].checkbox = tree[i].data !== undefined && tree[i].data.type !== undefined && tree[i].data.type === "task";
+									tree[i].selected = tree[i].data !== undefined && tree[i].data.done !== undefined && tree[i].data.done;
+									if (tree[i].children) {
+										tree[i].children = setCheckBoxFromTyp(tree[i].children);
+									}
+								}
+
+								return tree;
+							}
+							
+
+							// TODO init UI method?
+							$("[data-node-menu]").dropdown();
+								
+							let form = $("[data-noteeditor]");
+							window.n3.node.getNodeHTMLEditor(form).then(function(data) {
+								window.n3.initFancyTree(tree).then(function() {
+									resolve(true);
 								});
 							});
 						});
@@ -602,6 +581,8 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 				} else {
 					window.n3.modal.closeAll(true);
 					window.n3.modal.open(document.getElementById("n3-table-noAccessError-local-folder-modal"));
+					let a = $("[data-folderaccesserror]");
+					a.html("You have no granted access to local folder.");
 					resolve(false);
 				}
 			});
@@ -645,28 +626,34 @@ window.n3.localFolder.verifyPermission = function(fileHandle, readWrite) {
 
 // Functions to open and close a modal
 window.n3.modal.open = function($el) {
+	let el = $el;
 	if ($el instanceof jQuery) {
-		$el = $el[0];
+		el = $el[0];
 	}
-	$el.classList.add("is-active");
-
-	if ($el.dataset.onopen) {
-		if (window.n3.action.handlers[$el.dataset.onopen]) {
-			window.n3.action.handlers[$el.dataset.onopen](undefined, undefined, $el);
+	
+	let preventclosemodal = el.dataset.preventclosemodal === "";
+	$($el).modal({
+		autofocus: false,
+		closable: !preventclosemodal
+	}).modal("show");
+	
+	if (el.dataset.onopen) {
+		if (window.n3.action.handlers[el.dataset.onopen]) {
+			window.n3.action.handlers[el.dataset.onopen](undefined, undefined, el);
 		}
 	}
 
 }
 
 window.n3.modal.close = function($el, force) {
-	if ($el.classList.contains("is-active") && ($el.dataset.preventclosemodal || force)) {
-		$el.classList.remove("is-active");
+	if ($el.dataset.preventclosemodal || force) {
+		$($el).modal("hide");
 	}
 	$(document).off("keydown.closemodal");
 }
 
 window.n3.modal.closeAll = function(force) {
-	(document.querySelectorAll(".modal.is-active") || []).forEach(($modal) => {
+	(document.querySelectorAll(".modal.visible") || []).forEach(($modal) => {
 		window.n3.modal.close($modal, force);
 	});
 }
@@ -674,14 +661,19 @@ window.n3.modal.closeAll = function(force) {
 window.n3.node.getNewNodeData = function() {
 	return {
 		"key": crypto.randomUUID(),
-		"title": "New note created on " + JSJoda.LocalDateTime.now().format(JSJoda.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
+		"checkbox": false,
+		"title": JSJoda.LocalDateTime.now().format(JSJoda.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")),
 		"data": {
-			"creationDate": JSJoda.Instant.now().toString()
+			"creationDate": JSJoda.Instant.now().toString(),
+			"type": "note",
+			"priority": 0,
+			"done": false
 		}
 	};
 }
 
 window.n3.node.add = function() {
+	let hasFocus = $.ui.fancytree.getTree("[data-tree]").hasFocus();
 	let node = $.ui.fancytree.getTree("[data-tree]").getActiveNode();
 	if (!node) {
 		node = $.ui.fancytree.getTree("[data-tree]").getRootNode();
@@ -689,8 +681,29 @@ window.n3.node.add = function() {
 
 	let newNodeData = window.n3.node.getNewNodeData();
 	let newNode = node.addNode(newNodeData, "child");
+
 	newNode.setActive();
 	storeService.addNote(newNode).then(function() { });
+}
+
+window.n3.node.updateInternalLinks = function(htmlText) {
+	
+
+	let $htmlCntainer = $("<div />");
+	$htmlCntainer.html(htmlText);
+
+	let internalLinks = $("[data-link-node]", $htmlCntainer);
+
+	internalLinks.each(function(index) {
+		let $this = $(this);
+		
+		let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey($this[0].dataset.linkNode);
+		if (note) {
+			$(this).html(note.data.path);
+		}
+	});
+
+	return $htmlCntainer.html();
 }
 
 window.n3.node.activateNode = function(node) {
@@ -699,7 +712,7 @@ window.n3.node.activateNode = function(node) {
 		let $nodeDataOwner = $("[data-owner='node']");
 		$nodeDataOwner[0].dataset.notekey = node.key;
 
-		window.n3.refreshNodeTasksFilter(node.key).then(function() { });
+		
 
 		let form = $("[data-noteeditor]");
 
@@ -707,363 +720,96 @@ window.n3.node.activateNode = function(node) {
 		var description = ((node || {}).data || {}).description || "";
 		storeService.loadImages("node", node.key, description).then(function(htmlText) {
 			window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
+				htmlText = window.n3.node.updateInternalLinks(htmlText);
 				htmlEditor.setContent(htmlText);
 				htmlEditor.setDirty(false);
+
+				if (node.data.backlinks) {
+					let htmlBacklinks = "<ul>";
+					node.data.backlinks.forEach(function(backlinkNoteKey) {
+						let backlinkNote = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(backlinkNoteKey);
+						htmlBacklinks += "<li><a href='#" + backlinkNote.key  + "' data-backlink-node='" + backlinkNote.key +"'>" + backlinkNote.data.path + "</a></li>";
+					});
+					htmlBacklinks += "</ul>";
+					$("[data-backlinks]").html(htmlBacklinks);
+					//htmlEditor.execCommand("ToggleSidebar", false, "backlinks");
+				} else {
+					$("[data-backlinks]").html("");
+					//htmlEditor.execCommand("ToggleSidebar", false, "backlinks");
+				}
+
+				
 				resolve();
 			});
 		});
 
-		let $badge = $("[data-notebadge]");
-		if (description.length > 0) {
-			$badge.show();
-			$("span", $badge).html(prettyBytes(description.length));
+		$("[data-is-task]").prop("checked", node.data.type === "task");
+
+		if (node.data.type === "task") {
+			$("[data-done]").show();
+			$("[data-priority]").show();
 		} else {
-			$badge.hide();
+			$("[data-done]").hide();
+			$("[data-priority]").hide();
 		}
 
-	});
-}
+		$("[data-done] [name='done']").prop("checked", node.data.done !== undefined && node.data.done);
 
-window.n3.task.getTagsFilter = function(form) {
-	if (!window.n3.task.tagsFilter) {
-		let tagsInput = $('[name="tags"]', form);
-		window.n3.task.tagsFilter = new Tagify(tagsInput[0],
-			{
-				whitelist: window.n3.task.tagsList.concat([{ value: "Ignore tags", color: "green" }]),
-				editTags: false,
-				userInput: false,
-				/*transformTag: function(tagData) {
-					tagData.color = getRandomColor();
-				},*/
-				dropdown: {
-					enabled: 0,              // show the dropdown immediately on focus
-					closeOnSelect: true,          // keep the dropdown open after selecting a suggestion
-					highlightFirst: true
-				}
-			}
-		);
-		window.n3.task.tagsFilter.on('change', function() {
-			window.n3.refreshNodeTasksFilter();
-		});
-		window.n3.task.tagsFilter.removeAllTags();
-		window.n3.task.tagsFilter.addTags(window.n3.task.tagsList.concat([{ value: "Ignore tags", color: "green" }]));
-	}
-	window.n3.task.tagsFilter.whitelist = window.n3.task.tagsList.concat([{ value: "Ignore tags", color: "green" }]);
-	return window.n3.task.tagsFilter;
-}
+		//////////////////////////////
 
-/*// generate a random color (in HSL format, which I like to use)
-function getRandomColor(){
-	function rand(min, max) {
-		return min + Math.random() * (max - min);
-	}
-
-	let h = rand(1, 360)|0,
-		s = rand(40, 70)|0,
-		l = rand(65, 72)|0;
-
-	return 'hsl(' + h + ',' + s + '%,' + l + '%)';
-}*/
-window.n3.refreshNodeTasksFilter = function(noteKey, taskId, trigger) {
-
-	return new Promise(function(resolve) {
-		let form = $("[data-form='tasks-table']");
-		if (!noteKey) {
-			if (!trigger) {
-				trigger = form[0];
-			}
-			let $nodeDataOwner = trigger.closest("[data-owner='node']");
-			if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
-				noteKey = $nodeDataOwner.dataset.notekey;
-			}
-
-			let $ticketDataOwner = trigger.closest("[data-owner='task']");
-			if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
-				noteKey = $ticketDataOwner.dataset.notekey;
-			}
-		}
-
-		let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-
-		let childrenTasks = $("[name='children']", form).prop("checked");
-
-		let chosenStatus = [];
-		$("[data-status='true']", form).each(function(index) {
-			if ($(this).prop("checked")) {
-				chosenStatus.push($(this).attr("name"));
+		let priorityDropDown = window.n3.task.priority.map(function(priority) {
+			return {
+				name: priority.text,
+				value: priority.id + "",
+				selected: node.data.priority !== undefined && (priority.id + "") === (node.data.priority + "")
 			}
 		});
-
-		let tags = window.n3.task.getTagsFilter(form).value;
-
-
-		let childrenNodesKeys = [node.key];
-		if (childrenTasks) {
-			childrenNodesKeys = collectChildrenNodesKeys(node);
-
-			function collectChildrenNodesKeys(node) {
-				let childrenKeys = [];
-				childrenKeys.push(node.key);
-				if (node.children) {
-					for (let i = 0; i < node.children.length; i++) {
-						childrenKeys = childrenKeys.concat(collectChildrenNodesKeys(node.children[i]));
-					}
-				}
-				return childrenKeys;
-			}
+		let priorityDropdown = $("[data-priority]", form).dropdown({
+			values: priorityDropDown
+		});
+		let selectedPriority = window.n3.task.priority.find(function(priority) {
+			return node.data.priority !== undefined && (priority.id + "") === (node.data.priority + "");
+		});
+		if (!selectedPriority) {
+			selectedPriority = 0;
 		}
+		priorityDropdown.dropdown("set selected", selectedPriority.id + "");
+		priorityDropdown.dropdown("setting", "onChange", function(value, text, $choice) {
+			node.data.priority = value;
+			storeService.modifyNote(node, ["priority"]).then(function() {});
+			node.renderTitle();
+		});
 
-		if (window.n3.tabulator) {
-			window.n3.tabulator.setFilter(function(data, filterParams) {
-				//data - the data for the row being filtered
-				//filterParams - params object passed to the filter
+		//////////////////////////////
 
-				let passed = filterParams.childrenNodesKeysJoined.indexOf("|" + data.noteKey + "|") > -1;
-				passed = passed && filterParams.chosenStatusJoined.indexOf("|" + data.status + "|") > -1;
-
-				let ignoreTags = filterParams.tags.some(function(filterTag) {
-					return filterTag.value == "Ignore tags";
-				});
-
-				let hasTage = ignoreTags || data.tags.some(function(taskTag) {
-					return filterParams.tags.some(function(filterTag) {
-						return taskTag.value == filterTag.value;
-					});
-				});
-				passed = passed && hasTage;
-
-				return passed;
-			}, {
-				chosenStatusJoined: "|" + chosenStatus.join("|") + "|",
-				childrenNodesKeysJoined: "|" + childrenNodesKeys.join("|") + "|",
-				tags: tags
+		let tagsDropDownMenu = window.n3.task.tagsList.map(function(tag) {
+			return {
+				name: tag,
+				value: tag,
+		        selected: ("," + node.data.tags + ",").indexOf(tag) > -1
+			}
+		});
+		
+		let tagsDropDownEl = $("[data-tags], form");
+		let tagsDropDown = tagsDropDownEl.dropdown({
+			allowAdditions: true,
+			values: tagsDropDownMenu
+		});
+		tagsDropDown.dropdown("clear");
+		if (node.data.tags !== undefined) {
+			node.data.tags.split(",").forEach(function(tag) {
+				tagsDropDown.dropdown("set selected", tag);
 			});
 		}
-		resolve();
+		tagsDropDown.dropdown("setting", "onChange", function(value, text, $choice) {
+			node.data.tags = value;
+			storeService.modifyNote(node, ["tags"]).then(function() {});
+		});
+
 	});
 }
 
-window.n3.ui.displayBreadCrumb = function(node, $el) {
-	$el.html(window.n3.node.getNodeTitlePath(node));
-}
 
-// noLinks - in Bulma gibt es keine BredCrumb ohne Links...
-window.n3.node.getNodeTitlePath = function(node, noLinks) {
-	let breadCrumbs = "";
-	let pathNode = node;
-	while (pathNode && pathNode.title !== "root") {
-		let breadCrumbNote = "<li " + (pathNode.key == node.key ? " class='is-active' " : "") + ">";
-		//if (!noLinks) {
-		breadCrumbNote += "<a " + (pathNode.key == node.key ? " aria-current='page' " : " data-owner='node' ") + " href='#' data-action='activate-node' data-noteKey='" + pathNode.key + "'>";
-		//}
-		breadCrumbNote += pathNode.title;
-		//if (!noLinks) {
-		breadCrumbNote += "</a>";
-		//}
-		breadCrumbNote += "</li>";
-
-		breadCrumbs = breadCrumbNote + breadCrumbs;
-		pathNode = pathNode.parent;
-	}
-	breadCrumbs = "<ul>" + breadCrumbs + "</ul>"
-	return breadCrumbs;
-}
-
-
-
-window.n3.initTaskTable = function() {
-
-	window.n3.tabulator = new Tabulator("[data-tasks]", {
-		reactiveData: true, //enable reactive data
-		data: window.n3.tasks,
-		layout: "fitColumns",
-		height: "500px",
-		// movableRows: true, //enable user movable rows
-		columns: [
-			{
-				title: "Status",
-				field: "status",
-				maxWidth: 200,
-				formatter: function(cell, formatterParams, onRendered) {
-					//cell - the cell component
-					//formatterParams - parameters set for the column
-					//onRendered - function to call when the formatter has been rendered
-
-					let rowElement = cell.getRow().getElement();
-					let status = window.n3.task.status.find(function(status) {
-						return status.id == cell.getValue()
-					});
-					rowElement.dataset.internstatus = status.intern;
-
-					onRendered(function() {
-						let tagElement = $(".tag", cell.getElement());
-
-						let instanceTippy = tippy(tagElement[0], {
-							content: function(trigger) {
-
-								let html = "";
-								html += "<div class='notification n3-notification'><button class='delete'></button><div data-choosestatus class='tags'>";
-								window.n3.task.status.forEach(function(state) {
-									html += " ";
-									html += "<span data-state='" + state.id + "' class='tag " + (state.cssClass ? state.cssClass : "") + " '> ";
-									if (state.icon) {
-										html += "	<span class='icon'>";
-										html += "		<i class='" + state.icon + "'></i>";
-										html += "	</span>";
-									}
-									html += "	<span> " + state.text + "</span>";
-									html += "</span>";
-								});
-								html += "</div></div>";
-
-								return html;
-							},
-							allowHTML: true,
-							theme: 'light-border',
-							trigger: 'click',
-							interactive: true,
-							placement: 'bottom',
-							appendTo: document.body
-						});
-
-
-						$(instanceTippy.popper).on("click mousedown", ".tag", function(event) {
-							event.stopPropagation && event.stopPropagation();
-							event.preventDefault && event.preventDefault();
-
-							let state = this.dataset.state;
-							cell.setValue(state, false);
-
-							storeService.modifyTask(cell.getData()).then(function() {
-								instanceTippy.hide();
-							});
-
-						});
-
-						$(instanceTippy.popper).on("click mousedown", ".delete", function(event) {
-							event.stopPropagation && event.stopPropagation();
-							event.preventDefault && event.preventDefault();
-							instanceTippy.hide();
-						});
-
-						// ignore click row
-						$(".tag", cell.getElement()).on("mousedown click", function(event) {
-							event.stopPropagation && event.stopPropagation();
-							event.preventDefault && event.preventDefault();
-						});
-					});
-
-					let state = window.n3.task.status.find(function(status) {
-						return status.id == cell.getValue()
-					});
-
-					let html = "";
-					html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-					if (state.icon) {
-						html += "	<span class='icon'>";
-						html += "		<i class='" + state.icon + "'></i>";
-						html += "	</span>";
-					}
-					html += "	<span> " + state.text + "</span>";
-					html += "</span>";
-
-					return html;
-				},
-			},
-			{
-				title: "Title",
-				field: "title",
-				tooltip: true,
-				formatter: function(cell, formatterParams, onRendered) {
-					//cell - the cell component
-					//formatterParams - parameters set for the column
-					//onRendered - function to call when the formatter has been rendered
-					let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(cell.getData().noteKey);
-					return "<div class='n3title'>" + cell.getValue() + "</div><div class='breadcrumb n3-breadcrumb'>" + window.n3.node.getNodeTitlePath(node) + "</div>"; //return the contents of the cell;
-				}
-			},
-			{
-				title: "Prio",
-				field: "priority",
-				maxWidth: 100,
-				tooltip: true,
-				formatter: function(cell, formatterParams, onRendered) {
-					//cell - the cell component
-					//formatterParams - parameters set for the column
-					//onRendered - function to call when the formatter has been rendered
-
-					onRendered(function() {
-						let rowElement = cell.getRow().getElement();
-						rowElement.dataset.priority = cell.getValue();
-					});
-
-					// convert old values TODO remove it
-					let priority = window.n3.task.priority.find(function(priority) {
-						return priority.id == cell.getValue()
-					});
-					return "<div class='n3priority'>" + priority.text + "</div>"; //return the contents of the cell;
-				}
-			},
-			{
-				title: "Tags",
-				field: "tags",
-				maxWidth: 250,
-				formatter: function(cell, formatterParams, onRendered) {
-					//cell - the cell component
-					//formatterParams - parameters set for the column
-					//onRendered - function to call when the formatter has been rendered
-
-					onRendered(function() {
-						let tagify = new Tagify($("input", cell.getElement())[0],
-							{
-								editTags: false,
-								userInput: false
-							}
-						);
-						tagify.addTags(cell.getValue());
-					});
-					return "<input class='input is-static' name='tags' readonly value=''>";
-				}
-			}
-		],
-		persistence: {
-			sort: true, //persist column sorting
-			// filter: true, //persist filter sorting
-			// group: true, //persist row grouping
-			// page: true, //persist page
-			// columns: true, //persist columns
-		}
-	});
-
-	window.n3.tabulator.on("rowClick", function(event, row) {
-
-		// click on done? then don't open modal'
-		// it's because event.stopPropagation(); on cellClick doesn't work...
-		let targetElement = event.target || event.srcElement;
-		if (targetElement.tagName == "svg" || targetElement.tagName == "path" ||
-			$(targetElement).attr("tabulator-field") == "done") {
-			return;
-		}
-
-		let rowData = row.getData();
-		window.n3.modal.openTaskDetails(rowData);
-
-	});
-
-	window.n3.tabulator.on("dataFiltered", function(filters, rows) {
-		//filters - array of filters currently applied
-		//rows - array of row components that pass the filters
-		let $badge = $("[data-tasksbadge]");
-		if (rows.length > 0) {
-			$badge.show();
-			$("span", $badge).html(rows.length);
-		} else {
-			$badge.hide();
-		}
-	});
-
-
-}
 
 window.n3.node.getNodeHTMLEditor = function(form) {
 
@@ -1073,22 +819,11 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			return;
 		}
 
-		let specialChars = [
-			{ text: "exclamation mark", value: "!" },
-			{ text: "at", value: "@" },
-			{ text: "hash", value: "#" },
-			{ text: "dollars", value: "$" },
-			{ text: "percent sign", value: "%" },
-			{ text: "caret", value: "^" },
-			{ text: "ampersand", value: "&" },
-			{ text: "asterisk", value: "*" }
-		];
-
-
 		tinymce.init({
 			target: $("[name='description']", form)[0],
 			menubar: false,
 			toolbar_sticky: true,
+			toolbar_sticky_offset: 48,
 			min_height: 400,
 
 			inline_boundaries: false,
@@ -1101,12 +836,19 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			toolbar: "undo redo | formatselect | " +
 				"bold italic backcolor | alignleft aligncenter " +
 				"alignright alignjustify | bullist numlist outdent indent | " +
-				"removeformat | code",
+				"removeformat | code | backlinks",
 			powerpaste_word_import: "clean",
 			powerpaste_html_import: "clean",
 			block_unsupported_drop: false,
 			setup: function(editor) {
 
+				editor.on('dblclick', function(e) {
+					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNode) {
+						let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(e.srcElement.dataset.linkNode); 
+						window.n3.node.activateNode(note);
+					}
+				});
+				
 				editor.on("blur", function(e) {
 					if (editor.isDirty()) {
 
@@ -1115,6 +857,23 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 
 						let currentNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
 						currentNode.data.description = editor.getContent();
+
+						let $htmlCntainer = $("<div />");
+						$htmlCntainer.html(currentNode.data.description);
+						let internalLinks = $("[data-link-node]", $htmlCntainer);
+						internalLinks.each(function(index) {
+							let $this = $(this);
+							if ($this[0].dataset.linkNode) {
+								
+								let linkedNote = $.ui.fancytree.getTree("[data-tree]").getNodeByKey($this[0].dataset.linkNode);
+								
+								if (linkedNote.data.backlinks === undefined) {
+									linkedNote.data.backlinks = [];
+								}
+								linkedNote.data.backlinks.push(currentNode.key);
+							}
+						});
+
 						storeService.modifyNote(currentNode, ["description"]).then(function() { });
 						editor.setDirty(false);
 					}
@@ -1137,49 +896,82 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 				editor.on("drop", function(event) {
 					 console.log("drop", event);
 				})*/
-
-
-
-				/* An autocompleter that allows you to insert special characters */
-				/*
 				
-				****************************************************************************************
-				TODO: 
-				1. link to page autocomplter
-				2. backlinks!!
-				
-				
-				let getMatchedChars = function(pattern) {
-					return specialChars.filter(function(char) {
-						return char.text.indexOf(pattern) !== -1;
-					});
-				};
-
 				editor.ui.registry.addAutocompleter("specialchars", {
-					ch: '#",
-					minChars: 1,
-					columns: "auto",
+					ch: '[',
+					minChars: 0,
+					columns: 1,
 					onAction: function(autocompleteApi, rng, value) {
 						editor.selection.setRng(rng);
-						editor.insertContent(value);
+						let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(value);
+						editor.insertContent("[<a href='#" + value +"' data-link-node='" + value +"'>" + note.data.path + "</a>]");
 						autocompleteApi.hide();
 					},
 					fetch: function(pattern) {
 						return new Promise(function(resolve) {
-							let results = getMatchedChars(pattern).map(function(char) {
-								return {
-									type: "autocompleteitem",
-									value: char.value,
-									text: char.text,
-									icon: char.value
-								}
-							});
-							resolve(results);
+							let searchResults = [];
+
+							if (pattern.trim() === "") {	
+								searchResults = storeService.getIndexedDocuments(10);					
+																
+							} else {
+
+								searchResults = storeService.search(pattern, 10);
+								searchResults = searchResults[0].result;
+							}
+
+							if (searchResults.length > 0) {
+								let results = searchResults.map(function(searchResult) {
+									return {
+										type: 'cardmenuitem',
+										value: searchResult.id,
+										label: searchResult.doc.path,
+										items: [
+											{
+												type: 'cardcontainer',
+												direction: 'vertical',
+												items: [
+													{
+														type: 'cardtext',
+														text: searchResult.doc.path,
+														name: 'char_name'
+													}
+												]
+											}
+										]
+									}
+								});
+								resolve(results);
+							} else {
+								resolve([]);
+							}
+							
 						});
 					}
 				});
+
+				editor.ui.registry.addSidebar('backlinks', {
+					tooltip: 'Backlinks',
+					icon: 'link',
+					onSetup: (api) => {
+					  //console.log('Render panel', api.element());
+					  api.element().innerHTML = '<div data-backlinks class="n3backlinks-sidebar">Loading backlinks...</div>';
+					},
+					onShow: (api) => {
+					  //console.log('Show panel', api.element());
+					  // api.element().innerHTML = '<div data-backlinks class="n3backlinks-sidebar">Loading backlinks...</div>';
+					  //$(api.element()).css({"border": "1px solid black; "});
+					},
+					onHide: (api) => {
+					  //console.log('Hide panel', api.element());
+					}
+				});
+
+				editor.on('SkinLoaded', () => {
+					editor.execCommand("ToggleSidebar", false, "backlinks");
+				});
 				
-				*/
+				
 			}
 		}).then(function(editor) {
 			window.n3.node.tinymce = editor[0];
@@ -1188,355 +980,6 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 	});
 }
 
-window.n3.task.delete = function(noteKey, taskId, $trigger) {
-	let taskToRemoveIndex = window.n3.tasks.findIndex(function(task) {
-		return task.id == taskId
-	});
-
-	let removedTasks = window.n3.tasks.splice(taskToRemoveIndex, 1);
-
-	removedTasks.forEach(function(task) {
-		storeService.moveTaskToTrash(task).then(function() {
-			window.n3.tabulator.refreshFilter();
-		});
-	});
-	let $modal = $trigger.closest('.modal');
-	window.n3.modal.close($modal, true);
-
-};
-
-
-window.n3.task.getTagsEditor = function(form) {
-	if (!window.n3.task.tagsEditor) {
-		let tagsInput = $('[name="tags"]', form);
-		window.n3.task.tagsEditor = new Tagify(tagsInput[0],
-			{
-				whitelist: window.n3.task.tagsList,
-				editTags: false,
-				dropdown: {
-					enabled: 0,              // show the dropdown immediately on focus
-					closeOnSelect: true,          // keep the dropdown open after selecting a suggestion
-					highlightFirst: true
-				}
-			}
-		);
-	}
-	window.n3.task.tagsEditor.whitelist = window.n3.task.tagsList;
-	return window.n3.task.tagsEditor;
-}
-
-window.n3.task.getTaskHTMLEditor = function(form) {
-	return new Promise(function(resolve) {
-		if (window.n3.task.tinymce) {
-			resolve(window.n3.task.tinymce);
-			return;
-		}
-
-		tinymce.init({
-			target: $("[name='description']", form)[0],
-			menubar: false,
-			toolbar_sticky: true,
-			inline_boundaries: false,
-			plugins: [
-				"advlist", "autolink", "lists", "link", "image", "charmap", "preview",
-				"anchor", "searchreplace", "visualblocks", "code", "fullscreen",
-				"insertdatetime", "media", "table", "code", "help", "wordcount"
-			],
-			toolbar: "undo redo | formatselect | " +
-				"bold italic backcolor | alignleft aligncenter " +
-				"alignright alignjustify | bullist numlist outdent indent | " +
-				"removeformat | code",
-			powerpaste_word_import: "clean",
-			powerpaste_html_import: "clean",
-			block_unsupported_drop: false,
-			setup: function(editor) {
-
-				editor.on("PreProcess", function(e) {
-					let imgs = $("img", e.node);
-					imgs.each(function() {
-						if (!this.dataset.n3src && (this.src.indexOf("data:image/") > -1 || this.src.indexOf("blob:") > -1)) {
-							let fileExt = "png"; // this.src.substring(11, 14);
-							this.dataset.n3src = "image_" + crypto.randomUUID() + "." + fileExt;
-						}
-					});
-				});
-			}
-		}).then(function(editor) {
-			window.n3.task.tinymce = editor[0];
-			resolve(window.n3.task.tinymce);
-		});
-	});
-}
-
-
-window.n3.task.getStatusEditor = function(form, taskStatus) {
-	if (!taskStatus) {
-		return window.n3.task.statusEditor;
-	}
-	window.n3.task.statusEditor = $("[name='status']", form);
-	window.n3.task.statusEditor.on("change", function(event) {
-
-		let inputStatus = $(this).val();
-		let state = window.n3.task.status.find(function(status) {
-			return status.id == inputStatus
-		});
-
-		let html = "";
-		html += "<span class='tag " + (state.cssClass ? state.cssClass : "") + " '>";
-		if (state.icon) {
-			html += "	<span class='icon'>";
-			html += "		<i class='" + state.icon + "'></i>";
-			html += "	</span>";
-		}
-		html += "	<span> " + state.text + "</span>";
-		html += "</span>";
-
-		let existingTagEl = $(".tag", window.n3.task.statusEditor.parent());
-		if (existingTagEl.length > 0) {
-			existingTagEl.replaceWith(html);
-		} else {
-			window.n3.task.statusEditor.after(html);
-		}
-
-		let instanceTippy = tippy($(".tag", window.n3.task.statusEditor.parent())[0], {
-			content: function(trigger) {
-
-				let html = "";
-				html += "<div class='notification'><button class='delete'></button><div data-choosestatus class='tags'>";
-				window.n3.task.status.forEach(function(state) {
-					html += " ";
-					html += "<span data-state='" + state.id + "' class='tag " + (state.cssClass ? state.cssClass : "") + " '> ";
-					if (state.icon) {
-						html += "	<span class='icon'>";
-						html += "		<i class='" + state.icon + "'></i>";
-						html += "	</span>";
-					}
-					html += "	<span> " + state.text + "</span>";
-					html += "</span>";
-				});
-				html += "</div></div>";
-
-				return html;
-			},
-			allowHTML: true,
-			theme: 'light-border',
-			trigger: 'click',
-			interactive: true,
-			placement: 'bottom',
-			appendTo: document.body
-		});
-
-
-		$(instanceTippy.popper).on("click mousedown", ".tag", function(event) {
-			event.stopPropagation && event.stopPropagation();
-			event.preventDefault && event.preventDefault();
-
-			let state = this.dataset.state;
-			window.n3.task.statusEditor.val(state).trigger("change");
-
-			instanceTippy.hide();
-		});
-
-		$(instanceTippy.popper).on("click mousedown", ".delete", function(event) {
-			event.stopPropagation && event.stopPropagation();
-			event.preventDefault && event.preventDefault();
-			instanceTippy.hide();
-		});
-	});
-
-	window.n3.task.statusEditor.val(taskStatus).trigger("change");
-
-
-	return window.n3.task.statusEditor;
-}
-
-window.n3.modal.openTaskDetails = function(task) {
-	let taskDetailsModal = $("#n3-task-details");
-
-	let $ticketDataOwner = taskDetailsModal.closest("[data-owner='task']");
-	if (task.id) {
-		$ticketDataOwner[0].dataset.taskid = task.id;
-	} else {
-		delete $ticketDataOwner[0].dataset.taskid;
-	}
-	if (task.noteKey) {
-		$ticketDataOwner[0].dataset.notekey = task.noteKey;
-	} else {
-		delete $ticketDataOwner[0].dataset.notekey;
-	}
-	window.n3.modal.open(taskDetailsModal);// todo .then?
-}
-
-window.n3.modal.onOpenTaskDetails = function(noteKey, taskId, targetElement) {
-	return new Promise(function(resolve) {
-		let ticketDataOwner = targetElement.closest("[data-owner='task']");
-		let noteKey = ticketDataOwner.dataset.notekey;
-		let taskId = ticketDataOwner.dataset.taskid;
-
-		let form = $("[data-taskeditor]");
-
-		let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-		window.n3.ui.displayBreadCrumb(node, $("[data-breadcrumb]", form));
-
-		if (!taskId) {
-			// Add task
-			$("[name='title']", form).val("");
-			$("[name='priority']", form).val("2");
-			$("[name='tags']", form).val();
-			$("[name='duration']", form).val("");
-
-			window.n3.task.getTagsEditor(form).removeAllTags();
-			window.n3.task.getStatusEditor(form, "TODO");
-			window.n3.task.getTaskHTMLEditor(form).then(function(editor) {
-				editor.setContent("");
-				resolve();
-			});
-		} else {
-			// Edit task
-			let task = window.n3.tasks.find(function(task) {
-				return task.id == taskId
-			});
-
-			$("[name='title']", form).val(task.title);
-			$("[name='priority']", form).val(task.priority || "2");
-			window.n3.task.getTagsEditor(form).removeAllTags();
-			window.n3.task.getTagsEditor(form).addTags(task.tags);
-			window.n3.task.getStatusEditor(form, task.status);
-			$("[name='duration']", form).val(task.duration || "");
-
-			storeService.loadImages("task", task.id, (task || {}).description || "").then(function(htmlText) {
-				window.n3.task.getTaskHTMLEditor(form).then(function(htmlEditor) {
-					htmlEditor.setContent(htmlText);
-					htmlEditor.setDirty(false);
-					resolve();
-				});
-			});
-		}
-	});
-}
-
-
-window.n3.task.validate.duration = function(form, el) {
-	let $el = $(el);
-	let duration = $el.val();
-	if (duration == "") {
-		return true;
-	}
-	let $validationMessage = $el.closest(":has([data-validate-massage)").find("[data-validate-massage='true']");
-	let valid = parseDuration(duration);
-	if (!valid) {
-		$validationMessage.show();
-	} else {
-		$validationMessage.hide();
-	}
-	return valid;
-}
-
-window.n3.task.validate.form = function(form) {
-	let validateFields = $("[data-validate]");
-	let validForm = true;
-	validateFields.each(function(index) {
-		if (this.dataset.validate) {
-			if (window.n3.action.handlers[this.dataset.validate]) {
-				let valid = window.n3.action.handlers[this.dataset.validate](form, this);
-				validForm = validForm && valid;
-			}
-		}
-	});
-	return validForm;
-}
-
-window.n3.task.save = function(noteKey, taskId, $trigger) {
-
-	let form = $("[data-taskeditor]");
-	if (!window.n3.task.validate.form(form)) {
-		return false;
-	}
-
-	if (!taskId) {
-		// it's add task from modal'
-
-		let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-		if (!node) {
-			node = $.ui.fancytree.getTree("[data-tree]").getRootNode();
-		}
-
-		if (node.title == "root") {
-			// it's root and has no children, crate some first noto
-			// ther's no nodes, add one
-			let newNode = window.n3.node.getNewNodeData();
-			node = node.addNode(newNode, "child");
-			storeService.addNote(node).then(function() { });
-		}
-
-		let newTaskId = crypto.randomUUID();
-		window.n3.task.getTaskHTMLEditor(form).then(function(editor) {
-			let description = "";
-			if (editor.isDirty()) {
-				description = editor.getContent();
-			}
-
-			let newTask = {
-				"id": newTaskId,
-				"title": $("[name='title']", form).val(),
-				"priority": $("[name='priority'] option:selected", form).val(),
-				"duration": $("[name='duration']", form).val(),
-				"noteKey": node.key,
-				"tags": window.n3.task.getTagsEditor(form).value,
-				"status": window.n3.task.getStatusEditor(form, undefined).val(),
-				"description": description,
-				"creationDate": JSJoda.Instant.now().toString()
-			};
-
-			storeService.addTask(newTask).then(function() {
-				let newLength = window.n3.tasks.unshift(newTask);
-
-				window.n3.task.getTagsEditor(form).value.forEach(function(tagToAdd) {
-					let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
-						return existingTag.value == tagToAdd.value
-					});
-					if (tagIndex == -1) {
-						window.n3.task.tagsList.push(tagToAdd);
-					}
-				});
-
-				window.n3.tabulator.refreshFilter();
-				node.setActive();
-			});
-		});
-	} else {
-		// it's edit task from modal
-
-		let task = window.n3.tasks.find(function(task) {
-			return task.id == taskId
-		});
-
-		task.title = $("[name='title']", form).val() || "";
-		window.n3.task.getTaskHTMLEditor(form).then(function(editor) {
-			task.description = editor.getContent();
-			task.status = window.n3.task.getStatusEditor(form, undefined).val(),
-				task.priority = $("[name='priority'] option:selected", form).val();
-			task.tags = window.n3.task.getTagsEditor(form).value;
-			task.duration = $("[name='duration']", form).val();
-			window.n3.task.getTagsEditor(form).value.forEach(function(tagToAdd) {
-				let tagIndex = window.n3.task.tagsList.findIndex(function(existingTag) {
-					return existingTag.value == tagToAdd.value
-				});
-				if (tagIndex == -1) {
-					window.n3.task.tagsList.push(tagToAdd);
-				}
-			});
-
-			storeService.modifyTask(task).then(function() {
-
-				window.n3.tabulator.refreshFilter();
-
-			});
-		});
-	}
-
-	return true;
-}
 
 window.n3.initFancyTree = function(rootNodes) {
 	var that = this;
@@ -1564,7 +1007,10 @@ window.n3.initFancyTree = function(rootNodes) {
 			lazyLogCache[name] = entry;*/
 			// console.log(msg);
 		}
+
 		let ff = $("[data-tree]").fancytree({
+			checkbox: true,
+			icon: false,
 			source: rootNodes,
 			lazyLoad: function(event, data) {
 				data.result = new Promise(function(resolve, reject) {
@@ -1580,8 +1026,35 @@ window.n3.initFancyTree = function(rootNodes) {
 				// or setup and return a new response object
 				//        data.result = [{title: "set by postProcess"}];
 			},
-			extensions: ["dnd5"],
+			extensions: ["dnd5", "filter"],
 			nodata: false,
+			filter: {
+				autoApply: true,   // Re-apply last filter if lazy data is loaded
+				autoExpand: false, // Expand all branches that contain matches while filtered
+				counter: false,     // Show a badge with number of matching child nodes near parent icons
+				fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
+				hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+				hideExpanders: true,       // Hide expanders if all child nodes are hidden by filter
+				highlight: false,   // Highlight matches by wrapping inside <mark> tags
+				leavesOnly: false, // Match end nodes only
+				nodata: true,      // Display a 'no data' status node if result is empty
+				mode: "hide"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+			},
+			select: function(event, data) {
+				console.log("select", event, data);
+
+				data.node.data.done = data.node.selected;
+				$("[data-done] [name='done']").prop("checked", data.node.data.done);
+				
+				let parentNode = data.node;
+				while (parentNode) {
+					parentNode.renderTitle();
+					parentNode = parentNode.parent;
+				}
+
+				storeService.modifyNote(data.node, ["done"]).then(function() { });
+
+			},
 			// doesn't work 'placeholder: "There's no tasks in this note.",
 			edit: {
 				// Available options with their default:
@@ -1596,33 +1069,32 @@ window.n3.initFancyTree = function(rootNodes) {
 			},
 			init: function(event, data) {
 				/*if (data.tree.rootNode.children.length > 0) {
-					$(".n3-app").removeClass("n3-no-nodes");
+					$("[data-app]").removeClass("n3-no-nodes");
 				} else {
-					$(".n3-app").addClass("n3-no-nodes");
+					$("[data-app]").addClass("n3-no-nodes");
 				}*/
 
 				if (data.tree.rootNode.children.length > 0) {
 					data.tree.activateKey(data.tree.rootNode.children[0].key);
 				} else {
-					$(".n3-app").addClass("n3-no-nodes");
+					$("[data-app]").addClass("n3-no-nodes");
 				}
+				data.tree.$container.addClass("fancytree-ext-childcounter");
 			},
 			modifyChild: function(event, data) {
 				// bei remove - data.tree.rootNode.children is not yet actuall
 				if (data.operation == "remove" && data.node.title == "root") {
-					$(".n3-app").addClass("n3-no-nodes");
+					$("[data-app]").addClass("n3-no-nodes");
 				}/* else if (data.operation != "remove" && data.tree.rootNode.children.length > 0) {
 					// on add new node, when there is no statusNodeType !== "nodata" node
-					$(".n3-app").removeClass("n3-no-nodes");
+					$("[data-app]").removeClass("n3-no-nodes");
 				}*/
 			},
 			// --- Node events -------------------------------------------------			
 			activate: function(event, data) {
-				$(".n3-app").removeClass("n3-no-nodes");
+				$("[data-app]").removeClass("n3-no-nodes");
 				if (data.node.key !== "_1") {
 					window.n3.node.activateNode(data.node).then(function() { });
-				} else {
-					window.n3.tabulator.setFilter("noteKey", "=", "HIDE_ALL_TASKS_THIS_NODE_KEY_DOES_NOT_EXISTS");
 				}
 			},
 			expand: function(event, data, a, b) {
@@ -1641,37 +1113,37 @@ window.n3.initFancyTree = function(rootNodes) {
 				});
 			},
 			enhanceTitle: function(event, data) {
-				let $spanTitle = $(".fancytree-title", data.node.span);
 
-				let childrenNodesKeys = "|" + collectChildrenNodesKeys(data.node).join("|") + "|";
-
-				let tasksAmount = window.n3.tasks.reduce(function(sum, task) {
-					let updatedSum = sum;
-
-					let status = window.n3.task.status.find(function(status) {
-						return status.id == task.status
-					});
-
-					if (childrenNodesKeys.indexOf("|" + task.noteKey + "|") > -1 && status.intern == "TOBEDONE") {
-						updatedSum++;
-					}
-					return updatedSum;
-				}, 0);
-
-				if (tasksAmount > 0) {
-					$spanTitle.append(" <span class='n3-title-info'>[" + tasksAmount + "]</span>");
-				}
-
-				function collectChildrenNodesKeys(node) {
-					let childrenKeys = [];
-					childrenKeys.push(node.key);
-					if (node.children) {
-						for (let i = 0; i < node.children.length; i++) {
-							childrenKeys = childrenKeys.concat(collectChildrenNodesKeys(node.children[i]));
+				let tasksAmountOnNode = 0;
+				let tasksAmount = 0;
+				data.node.visit(function(subNode) {
+					if (subNode.data.type === "task" && (subNode.data.done === undefined || !subNode.data.done)) {
+						tasksAmount++;
+						if (data.node.key === subNode.parent.key) {
+							tasksAmountOnNode++;
 						}
 					}
-					return childrenKeys;
+				});
+
+				if (tasksAmount > 0) {
+					$("span.fancytree-title", data.node.span).prepend(
+						$("<span class='fancytree-childcounter'" + (tasksAmountOnNode > 0 ? " style='background-color: #2185d0; ' " : "") + "/>").text(tasksAmount)
+					);
 				}
+
+				let priorityColors = {
+					"0": "grey",
+					"1": "mediumblue",
+					"2": "coral",
+					"3": "red"
+				}
+
+				if (data.node.data.type === "task") {
+					$("span.fancytree-title", data.node.span).css({color: priorityColors[data.node.data.priority]});
+				} else {
+					$("span.fancytree-title", data.node.span).css({color: ""});
+				}
+
 			},
 			dnd5: {
 				// autoExpandMS: 400,
@@ -1768,13 +1240,16 @@ window.n3.initFancyTree = function(rootNodes) {
 						data.otherNode.moveTo(node, data.hitMode);
 						// TODO: first call storeService.moveNote!! - the same way change all other moveNote places!
 						storeService.moveNote(data.otherNode, oldParentNote).then(function() { });
+						data.tree.render(true, false);
 					} else if (data.files.length) {
 						// Drop files
 						for (let i = 0; i < data.files.length; i++) {
 							let file = data.files[i];
 
 							let newNodeData = window.n3.node.getNewNodeData();
-							newNodeData.title = "'" + file.name + "' (" + file.size + " bytes)";
+							newNodeData.title = file.name;
+							newNodeData.data.description = "<a href='#' data-fileName='aaa.pdf' data-attachment>" + file.name + "</a>";
+							
 
 							let newNode = node.addNode(newNodeData, data.hitMode);
 							storeService.addNote(newNode).then(function() { });
@@ -1811,7 +1286,3 @@ window.n3.initFancyTree = function(rootNodes) {
 	});
 
 }
-
-
-
-

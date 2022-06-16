@@ -2,332 +2,220 @@
 <html class="no-js" lang="">
 
 <head>
-<meta charset="utf-8">
-<title>TaskLocally</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-
+	<meta charset="utf-8">
+	<title>TaskLocally</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
-<!-- CSS Framework -->
-<link href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/@creativebulma/bulma-tooltip@1.2.0/dist/bulma-tooltip.min.css" rel="stylesheet">
+<link href="3rd-party-libs/Semantic-UI-CSS-master/semantic.min.css" rel="stylesheet" type="text/css">
 <link href="3rd-party-libs/flex-splitter-directive/styles.min.css" rel="stylesheet">
 <link href="3rd-party-libs/fancytree-2.38.1/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
-<link href="3rd-party-libs/tabulator-5.1.7/dist/css/tabulator.min.css" rel="stylesheet">
-<link href="3rd-party-libs/tabulator-5.1.7/dist/css/tabulator_bulma.min.css" rel="stylesheet">
-<link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet" />
-<link href="https://unpkg.com/tippy.js@6/themes/light-border.css" rel="stylesheet" />
 <link href="n3/n3.css" rel="stylesheet">
 
+<body data-owner="node" data-app class="n3 n3-main n3-no-nodes">
 
-<body data-owner="node">
-
-	<nav class="navbar is-primary" role="navigation" aria-label="main navigation">
-		<div class="navbar-menu is-active">
-			<div class="navbar-start">
-				<div class="navbar-item">
-					<div class="buttons">
-						<button data-action="add-node" class="button ">
-							<span class="icon"> <i class="fa-solid fa-plus"></i>
-							</span> <span> Note</span>
-						</button>
-						<button data-action="add-task" data-target="n3-task-details" class="button is-light">
-							<span class="icon"> <i class="fa-solid fa-plus"></i>
-							</span> <span> Task</span>
-						</button>
-					</div>
-				</div>
-			</div>
-
-			<div class="navbar-end">
-				<div class="navbar-item">
-					<div class="field has-addons">
-						<p class="control">
-							<button class="button" data-action="open-modal" data-target="n3-search-dialog">
-								<span class="icon"> <i class="fa-solid fa-magnifying-glass"></i>
-								</span> <span>Search</span>
-							</button>
-						</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</nav>
-
-	<div class="n3-app n3-main n3-no-localfolder n3-no-nodes" data-flex-splitter-horizontal>
-
-
-		<div class="n3-leftside">
-			<div data-tree></div>
-		</div>
-		<div role="separator"></div>
-		<div class="n3-content-area">
-
-			<div class="block">
-
-				<div class="tabs">
-					<ul>
-						<li data-tabtrigger class="is-active"><a data-action="change-tab" data-target="note">Note&nbsp;<span class="n3-tabInfo" data-notebadge>-&nbsp;<span></span>
-							</span></a></li>
-						<li data-tabtrigger><a data-action="change-tab" data-target="tasks"> Tasks&nbsp;<span class="n3-tabInfo" data-tasksbadge>-&nbsp;<span></span>
-							</span>
-						</a></li>
-						<li data-tabtrigger><a data-action="change-tab" data-target="files">Files</a></li>
-					</ul>
-				</div>
-				<div data-tabname="note" data-tab>
-					<div class="buttons block are-small">
-						<button data-action="add-node" class="button is-primary" data-tooltip="Add note">
-							<span class="icon"> <i class="fa-solid fa-plus"></i>
-							</span> <span> Note</span>
-						</button>
-						<button data-action="add-task" data-target="n3-task-details" class="button is-primary" data-tooltip="Add task">
-							<span class="icon"> <i class="fa-solid fa-plus"></i>
-							</span> <span> Task</span>
-						</button>
-						<button data-action="open-modal" data-target="n3-table-delete-note-modal" class="button" data-tooltip="Delete note">
-							<span class="icon"> <i class="fa-solid fa-trash-can"></i>
-							</span> <span> Delete</span>
-						</button>
-
-					</div>
-					<div data-noteeditor class="block">
-						<div class="field">
-							<div class="control">
-								<input name="title" class="input" type="text">
-							</div>
-						</div>
-						<div class="field">
-							<div class="control">
-								<div class="n3-node-desciption" name="description" contenteditable="true" style="position: relative;" spellcheck="false"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div data-tabname="tasks" data-form="tasks-table" data-tab data-ontabopen="window.n3.ui.onOpenTabTasks" style="display: none;">
-
-					<div class="buttons block">
-						<button data-action="add-task" data-target="n3-task-details" class="button is-primary is-small">
-							<span class="icon"> <i class="fa-solid fa-plus"></i>
-							</span> <span> Task</span>
-						</button>
-					</div>
-					<div class="columns">
-						<div class="column is-two-fifth tags">
-							<label class="checkbox" data-action="refresh-tasks"> <input type="checkbox" name="children" checked> Children
-							</label>
-						</div>
-						<div data-statusfilter class="column is-two-fifth tags"></div>
-
-						<div class="column">
-							Tags <input name="tags" value="">
-						</div>
-					</div>
-					<div data-tasks></div>
-				</div>
-				<div data-tabname="files" data-tab style="display: none;">TODO files...</div>
-			</div>
-
+	<div class="ui olive pointing top fixed inverted  menu">
+		<div class="item">
+			<button data-action="add-node" class="ui button inverted ">
+				<i class="icon plus"></i> Note
+			</button>
 		</div>
 	</div>
 
-	<script src="n3/classes/fileSystem/N3File.js"></script>
-	<script src="n3/classes/fileSystem/N3Directory.js"></script>
-	<script src="n3/classes/search/N3SearchServiceAbstract.js"></script>
-	<script src="n3/classes/search/N3SearchServiceFlexSearch.js"></script>
-	<script src="n3/classes/store/N3StoreServiceAbstract.js"></script>
-	<script src="n3/classes/store/N3StoreServiceFileSystem.js"></script>
-	<script src="3rd-party-libs/async-2.3.0/dist/async.min.js"></script>
-	<script src="3rd-party-libs/flex-splitter-directive/index.min.js"></script>
-	<script src="3rd-party-libs/idb-keyval-5.0.2/idb-keyval-5.0.2.js"></script>
-	<script src="3rd-party-libs/jQuery-3.6.0/jquery-3.6.0.min.js"></script>
-	<script src="3rd-party-libs/js-joda--js-joda-locale-3.2.0-36.0.0/packages/core/dist/js-joda.min.js"></script>
-	<script src="3rd-party-libs/fancytree-2.38.1/dist/jquery.fancytree-all-deps.js"></script>
-	<script src="3rd-party-libs/tabulator-5.1.7/dist/js/tabulator.min.js"></script>
-	<script src="https://kit.fontawesome.com/8ff52efb45.js" crossorigin="anonymous"></script>
-	<script src="3rd-party-libs/tinymce-6.0.1/js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
-	<script src="https://unpkg.com/@yaireo/tagify"></script>
-	<script src="n3/parseDuration.js"></script>
-	<script src="n3/pretty-bytes.js"></script>
-	<script src="https://cdn.jsdelivr.net/gh/nextapps-de/flexsearch@0.7.2/dist/flexsearch.compact.js"></script>
-	<!-- Production -->
-	<script src="https://unpkg.com/@popperjs/core@2"></script>
-	<script src="https://unpkg.com/tippy.js@6"></script>
-	<script src="n3/n3.js"></script>
+	<div class="n3-root">
+		<div class="n3-wrapper" data-flex-splitter-horizontal>
+			<div class="n3-sidebar" style="min-width: 50px;">
 
+				<div class="ui icon input" style="width: 100%; " data-search>
+					<input type="text" placeholder="Search...">
+					<i class="search link icon"></i>
+				</div>
+				<div class="ui multiple dropdown" data-filter style="width: 100%; ">
+					<input type="hidden" name="filters">
+					<i class="filter icon"></i>
+					<span class="text">Filter</span>
+					<div class="menu">
+					  <div class="ui icon search input">
+						<i class="search icon"></i>
+						<input type="text" placeholder="Search...">
+					  </div>
+					  <div class="scrolling menu">
+						<div class="header">
+							<i class="tags icon"></i>
+							Filter by type
+						  </div>
+						<div class="item" data-value="tasks">
+						  <div class="ui red empty circular label"></div>
+						  Tasks
+						</div>
+						<div class="item" data-value="notes">
+						  <div class="ui blue empty circular label"></div>
+						  Notes
+						</div>
+						<div class="divider"></div>
+						<div class="header">
+							<i class="tags icon"></i>
+							Filter by Done
+						  </div>
+						
+						<div class="item" data-value="done">
+						  <div class="ui black empty circular label"></div>
+						  Done
+						</div>
+						<div class="item" data-value="not-done">
+						  <div class="ui purple empty circular label"></div>
+						  Not Done
+						</div>
+						<div class="divider"></div>
+						<div class="header">
+							<i class="tags icon"></i>
+							Filter by Priority
+						  </div>
+						<div class="item" data-value="priority-3">
+						  <div class="ui orange empty circular label"></div>
+						  Urgent &amp; Important
+						</div>
+						<div class="item" data-value="priority-2">
+						  <div class="ui yellow empty circular label"></div>
+						  Urgent
+						</div>
+						<div class="item" data-value="priority-1">
+						  <div class="ui pink empty circular label"></div>
+						  Important
+						</div>
+						<div class="item" data-value="priority-0">
+						  <div class="ui green empty circular label"></div>
+						  No priority
+						</div>
+						<div class="divider"></div>
+						<div class="header">
+							<i class="tags icon"></i>
+							Filter by Tags
+						  </div>
+					  </div>
+					</div>
+				  </div>
+				
+				<div data-tree class="n3-tree"></div>
+			</div>
+			<div role="separator"></div>
+			<div class="n3-content">
+				<div data-tab="note" data-noteeditor class="ui tab segment active" style="padding: 0;">
+					<div class="n3-note-title-row" style="padding: 0 10px;">
+						<div>
+							<div class="ui checkbox" style="display: none; " data-done>
+								<input type="checkbox" name="done">
+								<label></label>
+							</div>
+						</div>
+						<div class="n3-note-title-input">
+							<div class="ui input">
+								<input name="title" type="text">
+							</div>
+						</div>
+						<div>
+							<div class="ui dropdown" data-node-menu>
+								<button class="circular ui icon button">
+									<i class="icon ellipsis horizontal"></i>
+								</button>
+								<div class="menu">
+									<div class="item" data-action="open-modal" data-target="n3-delete-note-modal">
+										<i class="trash icon"></i>Delete note
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div style="padding: 0 10px; margin-bottom: 10px;">
+						<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
+							<input name="tags" type="hidden">
+							<i class="dropdown icon"></i>
+							<div class="default text">Add tag</div>
+							<div class="menu">
+							</div>
+						</div>
 
-	<div id="n3-table-choose-local-folder-modal" data-preventclosemodal class="modal">
-		<div class="modal-background"></div>
-		<div class="modal-content">
-			<div class="box has-text-centered">
-				<p>All data will be stored only in local folder. Please choose a new empty folder or one already used by this app.</p>
-				<button class="button is-small is-primary" data-action="choose-folder">Choose local folder</button>
+						<div class="ui checkbox" style="margin-right: 10px;">
+							<input type="checkbox" data-is-task>
+							<label>Task</label>
+						</div>
+						
+						<div class="ui dropdown inline" data-priority style="margin-right: 10px;">
+							<input type="hidden" name="priority">
+							<span class="text">Priority</span>
+							<i class="dropdown icon"></i>
+							<div class="menu">
+							</div>
+						</div>
+						
+						
+						
+					</div>
+					<div class="n3-node-desciption" name="description" contenteditable="true"></div>
+				</div>
 			</div>
 		</div>
-	</div>
 
-	<div id="n3-table-verify-local-folder-modal" data-preventclosemodal class="modal">
-		<div class="modal-background"></div>
-		<div class="modal-content">
-			<div class="box has-text-centered">
+		<div id="n3-table-choose-local-folder-modal" data-preventclosemodal class="ui modal">
+			<div class="content">
+				<p>All data will be stored only in local folder. Please choose a new empty folder or one already used by
+					this app.</p>
+				<button class="ui button small primary" data-action="choose-folder">Choose local folder</button>
+			</div>
+		</div>
+
+		<div id="n3-table-verify-local-folder-modal" data-preventclosemodal class="ui modal">
+			<div class="content">
 				<p>
-					Please confirm access to previously chosen local folder: <strong id="n3-folder-verify-foldername"></strong>
+					Please confirm access to previously chosen local folder: <strong
+						id="n3-folder-verify-foldername"></strong>
 				</p>
-				<button class="button is-small is-primary" data-action="verify-folder">Verify local folder</button>
-				<button class="button is-small is-primary" data-action="choose-folder">Choose other folder</button>
+				<button class="ui button small primary" data-action="verify-folder">Verify local folder</button>
+				<button class="ui button small primary" data-action="choose-folder">Choose other folder</button>
 			</div>
 		</div>
-	</div>
 
-	<div id="n3-table-noAccessError-local-folder-modal" data-preventclosemodal class="modal">
-		<div class="modal-background"></div>
-		<div class="modal-content">
-			<div class="box has-text-centered">
-				<article class="message is-danger">
-					<div class="message-header">
-						<p>No access to local folder</p>
-					</div>
-					<div class="message-body">
-						<p>There is required access to local folder to store data. Maybe your browser doesn't support it yet. Try it with Chrom or Edge.</p>
-						<p>Reload page to try again.</p>
-						<p>
-							Error message: <strong id="n3-folder-access-error"></strong>
-						</p>
-					</div>
-				</article>
+		<div id="n3-table-noAccessError-local-folder-modal" data-preventclosemodal class="ui modal">
+			<div class="ui negative message">
+				<div class="header">Error: No access to local folder granted!</div>
+				<p>There is required access to local folder to store data. Maybe your browser doesn't support it yet.
+					Try it with Chrom or Edge.</p>
+				<p>Reload page to try again.</p>
+				<p>
+					Error message: <strong data-folderaccesserror></strong>
+				</p>
+			</div>
+
+		</div>
+
+		<div id="n3-delete-note-modal" data-owner="node" class="ui modal">
+			<div class="header">Are you sure?</div>
+			<div class="content">Delete note and all subnotes!
+			</div>
+			<div class="actions">
+				<button data-action="close-dialog" class="ui cancel button">DON'T DELETE!</button>
+				<button data-action="delete-node-confirm" class="ui approve button">delete it all forever</button>
 			</div>
 		</div>
-	</div>
 
-	<div id="n3-table-delete-note-modal" data-owner="node" class="modal">
-		<div class="modal-background"></div>
-		<div class="modal-card">
-			<header class="modal-card-head">
-				<p class="modal-card-title">Are you sure?</p>
-				<button class="delete" aria-label="close"></button>
-			</header>
-			<section class="modal-card-body">Delete note and all subnotes and all tasks from this note and all tasks from subnotes!</section>
-			<footer class="modal-card-foot">
-				<div class="buttons are-small">
-					<button data-action="close-dialog" class="button is-success is-normal">DON'T DELETE!</button>
-					<button data-action="delete-node-confirm" class="button">delete it all forever</button>
-				</div>
-			</footer>
-		</div>
-	</div>
-
-	<div id="n3-delete-task-trigger" data-owner="task" class="modal">
-		<div class="modal-background"></div>
-		<div class="modal-card">
-			<header class="modal-card-head">
-				<p class="modal-card-title">Delete task?</p>
-				<button class="delete" aria-label="close"></button>
-			</header>
-			<section class="modal-card-body"></section>
-			<footer class="modal-card-foot">
-				<div class="buttons are-small">
-					<button data-action="close-dialog" class="button is-success is-normal">NO!!! DON'T DELETE THIS TASK!</button>
-					<button data-action="dalete-task-confirm" class="button">delete it forever</button>
-				</div>
-			</footer>
-		</div>
-	</div>
-
-
-	<div id="n3-task-details" data-taskeditor data-owner="task" data-onopen="taskeditor-on-open" class="modal n3-task-details-modal">
-		<div class="modal-background"></div>
-		<div class="modal-content">
-			<div class="box">
-				<div class="n3-node-header block">
-					<nav class="n3-breadcrumb breadcrumb" data-breadcrumb aria-label="breadcrumbs"></nav>
-				</div>
-
-				<div class="columns block">
-					<div class="column is-four-fifths">
-						<div class="field">
-							<div class="columns control n3-title">
-								<div class="column is-narrow">
-									<input name="status" type="hidden">
-								</div>
-								<div class="column">
-									<input name="title" class="input" type="text">
-								</div>
-							</div>
-						</div>
-						<div class="field">
-							<label class="label">Tags</label>
-							<div class="control n3-tags">
-								<input name="tags" value="">
-							</div>
-						</div>
-						<div class="field">
-							<label class="label">Description</label>
-							<div class="control">
-								<div name="description" contenteditable="true" style="position: relative;" spellcheck="false"></div>
-							</div>
-						</div>
-					</div>
-					<div class="column n3-attributes">
-						<div class="field">
-							<label class="label">Priority</label>
-							<div class="control">
-								<div class="select">
-									<select name="priority">
-										<option value="1">Low</option>
-										<option value="2" selected>Medium</option>
-										<option value="3">High</option>
-									</select>
-								</div>
-							</div>
-						</div>
-						<div class="field">
-							<label class="label">Duration
-								<div class="control">
-									<input name="duration" data-validate="task-duration-validate" value="" class="input">
-								</div>
-							</label>
-							<p class="help is-danger" data-validate-massage style="display: none;">This duration is invalid. Use e.g.: 1h, 1d, 1w, 2h15m.</p>
-						</div>
-					</div>
-				</div>
-
-
-				<div class="buttons are-small is-right">
-					<button data-action="save-task" class="button is-success is-normal" data-tooltip="Save">
-						<span class="icon"> <i class="fa-solid fa-floppy-disk"></i></i>
-						</span>
-					</button>
-					<button data-action="close-dialog" class="button" data-tooltip="Cancel changes">
-						<span class="icon"> <i class="fa-solid fa-poo"></i></i>
-						</span>
-					</button>
-					<button data-action="open-modal-delete-task-confirm" data-target="n3-delete-task-trigger" class="button" data-tooltip="Delete task">
-						<span class="icon"> <i class="fa-solid fa-trash-can"></i>
-						</span>
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div id="n3-search-dialog" class="modal n3-search-dialog" data-closeonesc data-onopen="searchdialog-on-open">
-		<div class="modal-background"></div>
-		<div class="modal-content">
-			<nav class="panel box">
-				<div class="panel-block">
-					<p class="control has-icons-left">
-						<input data-searchinput class="input" type="text" placeholder="Search"> <span class="icon is-left"> <i class="fas fa-search" aria-hidden="true"></i>
-						</span>
-					</p>
-				</div>
-				<section data-searchresultslist>
-				</section>
-			</nav>
-		</div>
-		<button data-action="close-dialog" class="modal-close is-large" aria-label="close"></button>
-	</div>
-
+		<script src="n3/classes/fileSystem/N3File.js"></script>
+		<script src="n3/classes/fileSystem/N3Directory.js"></script>
+		<script src="n3/classes/search/N3SearchServiceAbstract.js"></script>
+		<script src="n3/classes/search/N3SearchServiceFlexSearch.js"></script>
+		<script src="n3/classes/store/N3StoreServiceAbstract.js"></script>
+		<script src="n3/classes/store/N3StoreServiceFileSystem.js"></script>
+		<script src="3rd-party-libs/async-2.3.0/dist/async.min.js"></script>
+		<script src="3rd-party-libs/flex-splitter-directive/index.min.js"></script>
+		<script src="3rd-party-libs/idb-keyval-5.0.2/idb-keyval-5.0.2.js"></script>
+		<script src="3rd-party-libs/jQuery-3.6.0/jquery-3.6.0.min.js"></script>
+		<script src="3rd-party-libs/Semantic-UI-CSS-master/semantic.min.js"></script>
+		<script src="3rd-party-libs/js-joda--js-joda-locale-3.2.0-36.0.0/packages/core/dist/js-joda.min.js"></script>
+		<script src="3rd-party-libs/fancytree-2.38.1/dist/jquery.fancytree-all-deps.js"></script>
+		<script src="https://kit.fontawesome.com/8ff52efb45.js" crossorigin="anonymous"></script>
+		<script src="3rd-party-libs/tinymce-6.0.1/js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
+		<script src="n3/parseDuration.js"></script>
+		<script src="https://cdn.jsdelivr.net/gh/nextapps-de/flexsearch@0.7.2/dist/flexsearch.compact.js"></script>
+		<script src="n3/n3.js"></script>
 </body>
 
 </html>
