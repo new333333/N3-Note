@@ -272,8 +272,7 @@ $(function() {
 
 	$(document).on("click", "[data-backlink-node]", function() {
 		if (this &&  this.dataset && this.dataset.backlinkNode) {
-			let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(this.dataset.backlinkNode); 
-			window.n3.node.activateNode(note);
+			window.n3.action.activateNode(this.dataset.backlinkNode);
 		}
 	});
 	
@@ -844,8 +843,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 
 				editor.on('dblclick', function(e) {
 					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNode) {
-						let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(e.srcElement.dataset.linkNode); 
-						window.n3.node.activateNode(note);
+						window.n3.action.activateNode(e.srcElement.dataset.linkNode);
 					}
 				});
 				
