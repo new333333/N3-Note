@@ -234,4 +234,34 @@ body {
 
 .tox .n3backlinks-sidebar a {
 	color: #4183c4;
+	cursor: pointer;
+}
+
+.n3-search {
+	position: fixed;
+    width: 100%;
+    top: 48px;
+	z-index: 2;
+	background-color: #ffffff;
+}
+
+.n3-search .input {
+	width: 100%;
+}
+
+.n3-filter {
+	position: fixed;
+    width: 100%;
+    top: 86px;
+	z-index: 2;
+	background-color: #ffffff;
+	border-bottom: 2px solid #EFEFEF;
+}
+
+.n3-tree {
+    margin-top: 76px;
+}
+
+.n3-tree ul.fancytree-container {
+    border: none;
 }

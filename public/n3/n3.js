@@ -2,18 +2,18 @@
 
 TODO
 
- - link note, link task!!!!!!!!! 
+ - file upload implmentieren - erst Drag & Drop in tree
+ - list view with sorting
+ - tags umimplementieren + filter by tag  
+ - bilder gallery/slides
+ 
+ 
  - all files encryption
  - google drive storage
  - plan 3 tasks for today - choose from list (https://www.youtube.com/watch?v=oJTiq-Pqp9k)
  - file strucure ändern - bei Google
  - ctrl-s to save - nach react
- - links von notes to tasks, notes to notes usw. - bacllinks anzeigen
- - file upload implmentieren - erst Drag & Drop in tree
- - Opcja move/copy task (dla note jest z drzewka)
- - Widok taskow lista: sortowanie, filtrowanie
  - Suche opcje: szukaj historie, szukaj skasowane
- - option: task veschieben zu andere note
  - davon PWA machen
  - Tags colors
  - changes log - welche nodes/tasks wurden geändert für nachverfolgung von Arbeit
@@ -22,10 +22,9 @@ TODO
  - Ocr with tesseractjs
  - export als ZIP (semantic UI first)
  - choose folder list (semantic UI first)
-  
+ - github link und freigabe
  - full filter options (filet completed/archived als beide oder nur eine)
  - close all nodes/expande all nodes utton fpr tree
- - dynamische grupierung
  - consolidate store events - gleiche events mit gleich wparameter müssen nicht wiederhol1t werden! - veielleicht brauche ich merhere asyncqueues? 
  - display orphan files als liste
  - daten strzuktur version einbauen --! - bei start konvertierung zum neue struktur!
@@ -724,7 +723,7 @@ window.n3.node.activateNode = function(node) {
 				htmlEditor.setDirty(false);
 
 				if (node.data.backlinks) {
-					let htmlBacklinks = "<ul>";
+					let htmlBacklinks = "<h4>Backlinks:</h4><ul>";
 					node.data.backlinks.forEach(function(backlinkNoteKey) {
 						let backlinkNote = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(backlinkNoteKey);
 						htmlBacklinks += "<li><a href='#" + backlinkNote.key  + "' data-backlink-node='" + backlinkNote.key +"'>" + backlinkNote.data.path + "</a></li>";

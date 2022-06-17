@@ -26,75 +26,79 @@
 		<div class="n3-wrapper" data-flex-splitter-horizontal>
 			<div class="n3-sidebar" style="min-width: 50px;">
 
-				<div class="ui icon input" style="width: 100%; " data-search>
-					<input type="text" placeholder="Search...">
-					<i class="search link icon"></i>
-				</div>
-				<div class="ui multiple dropdown" data-filter style="width: 100%; ">
-					<input type="hidden" name="filters">
-					<i class="filter icon"></i>
-					<span class="text">Filter</span>
-					<div class="menu">
-					  <div class="ui icon search input">
-						<i class="search icon"></i>
+				<div class="n3-search">
+					<div class="ui icon input" data-search>
 						<input type="text" placeholder="Search...">
-					  </div>
-					  <div class="scrolling menu">
-						<div class="header">
-							<i class="tags icon"></i>
-							Filter by type
-						  </div>
-						<div class="item" data-value="tasks">
-						  <div class="ui red empty circular label"></div>
-						  Tasks
-						</div>
-						<div class="item" data-value="notes">
-						  <div class="ui blue empty circular label"></div>
-						  Notes
-						</div>
-						<div class="divider"></div>
-						<div class="header">
-							<i class="tags icon"></i>
-							Filter by Done
-						  </div>
-						
-						<div class="item" data-value="done">
-						  <div class="ui black empty circular label"></div>
-						  Done
-						</div>
-						<div class="item" data-value="not-done">
-						  <div class="ui purple empty circular label"></div>
-						  Not Done
-						</div>
-						<div class="divider"></div>
-						<div class="header">
-							<i class="tags icon"></i>
-							Filter by Priority
-						  </div>
-						<div class="item" data-value="priority-3">
-						  <div class="ui orange empty circular label"></div>
-						  Urgent &amp; Important
-						</div>
-						<div class="item" data-value="priority-2">
-						  <div class="ui yellow empty circular label"></div>
-						  Urgent
-						</div>
-						<div class="item" data-value="priority-1">
-						  <div class="ui pink empty circular label"></div>
-						  Important
-						</div>
-						<div class="item" data-value="priority-0">
-						  <div class="ui green empty circular label"></div>
-						  No priority
-						</div>
-						<div class="divider"></div>
-						<div class="header">
-							<i class="tags icon"></i>
-							Filter by Tags
-						  </div>
-					  </div>
+						<i class="search link icon"></i>
 					</div>
-				  </div>
+				</div>
+				<div class="n3-filter">
+					<div class="ui multiple dropdown" data-filter style="width: 100%; ">
+						<input type="hidden" name="filters">
+						<i class="filter icon"></i>
+						<span class="text">Filter</span>
+						<div class="menu">
+						<div class="ui icon search input">
+							<i class="search icon"></i>
+							<input type="text" placeholder="Search...">
+						</div>
+						<div class="scrolling menu">
+							<div class="header">
+								<i class="tags icon"></i>
+								Filter by type
+							</div>
+							<div class="item" data-value="tasks">
+							<div class="ui red empty circular label"></div>
+							Tasks
+							</div>
+							<div class="item" data-value="notes">
+							<div class="ui blue empty circular label"></div>
+							Notes
+							</div>
+							<div class="divider"></div>
+							<div class="header">
+								<i class="tags icon"></i>
+								Filter by Done
+							</div>
+							
+							<div class="item" data-value="done">
+							<div class="ui black empty circular label"></div>
+							Done
+							</div>
+							<div class="item" data-value="not-done">
+							<div class="ui purple empty circular label"></div>
+							Not Done
+							</div>
+							<div class="divider"></div>
+							<div class="header">
+								<i class="tags icon"></i>
+								Filter by Priority
+							</div>
+							<div class="item" data-value="priority-3">
+							<div class="ui orange empty circular label"></div>
+							Urgent &amp; Important
+							</div>
+							<div class="item" data-value="priority-2">
+							<div class="ui yellow empty circular label"></div>
+							Urgent
+							</div>
+							<div class="item" data-value="priority-1">
+							<div class="ui pink empty circular label"></div>
+							Important
+							</div>
+							<div class="item" data-value="priority-0">
+							<div class="ui green empty circular label"></div>
+							No priority
+							</div>
+							<div class="divider"></div>
+							<div class="header">
+								<i class="tags icon"></i>
+								Filter by Tags
+							</div>
+						</div>
+						</div>
+					</div>
+				</div>
 				
 				<div data-tree class="n3-tree"></div>
 			</div>
