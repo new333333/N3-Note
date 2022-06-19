@@ -23,6 +23,8 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 
 	addNote(note) {
 
+		let that = this;
+
 		let noteIt = note;
 		let path = "";
 		let sep = "";
@@ -32,12 +34,14 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			noteIt = noteIt.parent;
 		}
 	
+		let descriptionClean = that.#cleanDescription(note.data.description);
+				
 		this.#flexSearchDocument.add({
 			id: note.key,
 			type: "note",
 			title: note.title,
 			path: path,
-			content: note.title + " " + note.data.description,
+			content: note.title + " " + descriptionClean,
 			trash: false
 		});
 	}
@@ -53,12 +57,14 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 					
 			let notePath = path + (path.length > 0 ? " / " : "") + note.title;
 
+			let descriptionClean = that.#cleanDescription(note.data.description);
+
 			that.#flexSearchDocument.add({
 				id: note.key,
 				type: "note",
 				title: note.title,
 				path: notePath,
-				content: note.title + " " + note.data.description,
+				content: note.title + " " + descriptionClean,
 				trash: false
 			});
 			
@@ -78,16 +84,31 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 			sep = " / ";
 			noteIt = noteIt.parent;
 		}
+
+		let descriptionClean = that.#cleanDescription(note.data.description);
 	
 		this.#flexSearchDocument.update({
 			id: note.key,
 			type: "note",
 			title: note.title,
 			path: path,
-			content: note.title + " " + note.data.description,
+			content: note.title + " " + descriptionClean,
 			trash: trash
 		});
 
+	}
+
+	#cleanDescription(description) {
+		let $htmlCntainer = $("<div />");
+		let currentNoteLinks = [];
+		$htmlCntainer.html(description);
+		let internalLinks = $("[data-link-node]", $htmlCntainer);
+		internalLinks.each(function(index) {
+			let $this = $(this);
+			$this.remove();
+		});
+		let descriptionCleaned = $htmlCntainer.html();
+		return descriptionCleaned;
 	}
 
 }

@@ -725,7 +725,6 @@ window.n3.node.updateInternalLinks = function(htmlText) {
 }
 
 window.n3.node.activateNode = function(node) {
-	console.log("activateNode now", node.title + " - " + node.key);
 	return new Promise(function(resolve) {
 
 		let $nodeDataOwner = $("[data-owner='node']");
