@@ -183,22 +183,21 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 				return prevNoteDataFile.write(JSON.stringify(oldNoteData, null, 2));
 			}).then(function() {
 				// new file revision
-				let noteData = Object.assign({}, note.data);
-				delete noteData.description;
-				delete noteData.creationDate;
-
-				noteData.timeStamp = JSJoda.Instant.now().toString();
-				
-				return noteDataFile.write(JSON.stringify(noteData, null, 2));
+				return noteDataFile.write(JSON.stringify({
+					done: note.data.done,
+					priority: note.data.priority,
+					type: note.data.type,
+					timeStamp: JSJoda.Instant.now().toString()
+				}, null, 2));
 			}).catch(function(error) {
 				// not yet exists, create new file
-				let noteData = Object.assign({}, note.data);
-				delete noteData.description;
-				delete noteData.creationDate;
-				noteData.timeStamp = JSJoda.Instant.now().toString();
-
 				let noteDataFile = new N3File(dirHandle, [that.#noteDataFileName + ".json"]);
-				return noteDataFile.write(JSON.stringify(noteData, null, 2));
+				return noteDataFile.write(JSON.stringify({
+					done: note.data.done,
+					priority: note.data.priority,
+					type: note.data.type,
+					timeStamp: JSJoda.Instant.now().toString()
+				}, null, 2));
 			});
 
 		}

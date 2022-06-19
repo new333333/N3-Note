@@ -30,16 +30,20 @@ class N3StoreServiceAbstract {
 		});*/
 	}
 	
-	
-	#setPathsAndBacklinks(notes, path, notesBacklinks, level) {
+	// load root nodes, if key undefined
+	// load children notes if key defined
+	loadNotes(key) {
+		return this.readNotesStore(key);
+	}
+
+	#setBacklinks(notes, notesBacklinks, level) {
 		let that = this;
-		path = path || "";
+		
 		notesBacklinks = notesBacklinks || {};
 		level = level || 0;
-		let deeperLevel = level + 1;
-		
+			
 		notes.forEach(function(note) {
-			note.data.path = path + (path.length > 0 ? " / " : "") + note.title;
+			
 			let $htmlCntainer = $("<div />");
 			$htmlCntainer.html(note.data.description);
 			let internalLinks = $("[data-link-node]", $htmlCntainer);
@@ -50,9 +54,16 @@ class N3StoreServiceAbstract {
 						notesBacklinks[$this[0].dataset.linkNode] = [];
 					}
 					notesBacklinks[$this[0].dataset.linkNode].push(note.key);
+
+					if (note.data.links === undefined) {
+						note.data.links = [];
+					}
+					if (!note.data.links.includes($this[0].dataset.linkNode)) {
+						note.data.links.push($this[0].dataset.linkNode);
+					}
 				}
 			});
-			that.#setPathsAndBacklinks(note.children, note.data.path, notesBacklinks, deeperLevel);		
+			that.#setBacklinks(note.children, notesBacklinks, level + 1);		
 		});
 
 		if (level === 0) {
@@ -66,20 +77,16 @@ class N3StoreServiceAbstract {
 		}	
 	}
 
-	// load root nodes, if key undefined
-	// load children notes if key defined
-	loadNotes(key) {
-		return this.readNotesStore(key);
-	}
-
-
 	loadNotesTree() {
 		let that = this;
 		return this.readNotesTreeStore().then(function(tree) {
-			that.#setPathsAndBacklinks(tree);
-			that.searchService.addNotesTree(tree);
+			that.#setBacklinks(tree);
 			return Promise.resolve(tree);
 		});
+	}
+
+	indexTree(tree) {
+		this.searchService.addNotesTree(tree);
 	}
 		
 	iterateNotes(callback) {
@@ -88,7 +95,7 @@ class N3StoreServiceAbstract {
 		
 	addNote(note) {
 		var that = this;
-		note.data.path = (note.parent.key !== "root_1" ? (note.parent.data.path + " / ") : "") + note.title;
+		
 		return this.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
 			note.data = note.data || {};
 			note.data.description = htmltext;
@@ -103,7 +110,45 @@ class N3StoreServiceAbstract {
 	modifyNote(note, modifiedFields) {
 		var that = this;
 
-		note.data.path = (note.parent.key !== "root_1" ? (note.parent.data.path + " / ") : "") + note.title;
+		// it must be before Promise 
+		if (note.children && modifiedFields && modifiedFields.includes("description")) {
+			let $htmlCntainer = $("<div />");
+			let currentNoteLinks = [];
+			$htmlCntainer.html(note.data.description);
+			let internalLinks = $("[data-link-node]", $htmlCntainer);
+			internalLinks.each(function(index) {
+				let $this = $(this);
+				if ($this[0].dataset.linkNode) {
+					
+					let linkedNote = window.n3.getNoteByKey($this[0].dataset.linkNode);
+					
+					if (!currentNoteLinks.includes(linkedNote.key)) {
+						currentNoteLinks.push(linkedNote.key);
+					}
+
+					if (linkedNote.data.backlinks === undefined) {
+						linkedNote.data.backlinks = [];
+					}
+					if (!linkedNote.data.backlinks.includes(note.key)) {
+						linkedNote.data.backlinks.push(note.key);
+					}
+				}
+			});
+
+			note.data.links = note.data.links || [];
+			note.data.links.forEach(function(noteKey) {
+				if (!currentNoteLinks.includes(noteKey)) {
+					let backlinkNote = window.n3.getNoteByKey(noteKey);
+					var index = backlinkNote.data.backlinks.indexOf(note.key);
+					if (index !== -1) {
+						backlinkNote.data.backlinks.splice(index, 1);
+						console.log("remove from backlink");
+					}
+				}
+			});
+			note.data.links = currentNoteLinks;
+		}
+
 
 		return that.#extractImages("note", note.key, (note.data || {}).description || "").then(function(htmltext) {
 			note.data = note.data || {};
@@ -113,20 +158,55 @@ class N3StoreServiceAbstract {
 		}).then(function() {
 
 			if (note.children && modifiedFields && modifiedFields.includes("title")) {
-				updateNoteTree(note);
+				indexSubnotes(note);
 			} else {
-				that.searchService.updateNote(note);
+				that.searchService.modifyNote(note);
 			}
 
-			function updateNoteTree(note) {
-				note.data.path = (note.parent.key !== "root_1" ? (note.parent.data.path + " / ") : "") + note.title;
-				that.searchService.updateNote(note);
+			function indexSubnotes(note) {
+				that.searchService.modifyNote(note);
 				note.children.forEach(function(child) {
-					updateNoteTree(child)
+					indexSubnotes(child)
 				});
 			}
 
 			return Promise.resolve(note);
+		});
+	}
+
+	moveNote(note, oldParentNote) {
+		var that = this;
+
+		return this.moveNoteStore(note, oldParentNote).then(function() {
+
+			indexSubnotes(note);
+
+			function indexSubnotes(note) {
+				that.searchService.modifyNote(note);
+				note.children.forEach(function(child) {
+					indexSubnotes(child)
+				});
+			}
+
+			return Promise.resolve();
+		});
+	}
+		
+	moveNoteToTrash(note) {
+		var that = this;
+		
+		return this.moveNoteToTrashStore(note).then(function() {
+
+			indexSubnotes(note);
+
+			function indexSubnotes(note) {
+				that.searchService.modifyNote(note, true);
+				note.children.forEach(function(child) {
+					indexSubnotes(child)
+				});
+			}
+
+			return Promise.resolve();
 		});
 	}
 
@@ -166,14 +246,6 @@ class N3StoreServiceAbstract {
 
 	expandNote(note, expanded) {
 		return this.expandNoteStore(note, expanded);
-	}
-	
-	moveNote(note, oldParentNote) {
-		return this.moveNoteStore(note, oldParentNote);
-	}
-		
-	moveNoteToTrash(note) {
-		return this.moveNoteToTrashStore(note);
 	}
 
 	#extractImages(ownerTyp, ownerId, htmltext) {

@@ -6,6 +6,7 @@ TODO
  - list view with sorting
  - tags umimplementieren + filter by tag  
  - bilder gallery/slides
+ - search index trash - zweiten index
  
  
  - all files encryption
@@ -175,7 +176,7 @@ $(function() {
 			noteKey = $nodeDataOwner.dataset.notekey;
 		}
 		if (noteKey) {
-			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+			let node = window.n3.getNoteByKey(noteKey);
 
 			let newTitle = $(this).val();
 			if (node.title != newTitle) {
@@ -213,7 +214,7 @@ $(function() {
 			noteKey = $nodeDataOwner.dataset.notekey;
 		}
 		if (noteKey) {
-			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+			let node = window.n3.getNoteByKey(noteKey);
 			if (!node.data.type || node.data.type !== newType) {
 				node.data.type = newType;
 				node.checkbox = node.data.type === "task";
@@ -236,7 +237,7 @@ $(function() {
 			noteKey = $nodeDataOwner.dataset.notekey;
 		}
 		if (noteKey) {
-			let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+			let node = window.n3.getNoteByKey(noteKey);
 
 			node.data.done = $(this).prop("checked");
 			node.selected = node.data.done;
@@ -269,9 +270,9 @@ $(function() {
 		$("[data-search] input").trigger("keyup");
 	});
 
-	$(document).on("click", "[data-backlink-node]", function() {
-		if (this &&  this.dataset && this.dataset.backlinkNode) {
-			window.n3.action.activateNode(this.dataset.backlinkNode);
+	$(document).on("click", "[data-backlink-note]", function() {
+		if (this &&  this.dataset && this.dataset.backlinkNote) {
+			window.n3.action.activateNode(this.dataset.backlinkNote);
 		}
 	});
 	
@@ -294,6 +295,12 @@ $(function() {
 	});
 
 });
+
+
+window.n3.getNoteByKey = function(noteKey) {
+	let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+	return note;
+}
 
 window.n3.filterTree = function() {
 
@@ -379,7 +386,7 @@ window.n3.ui.onUnload = function(event) {
 	let modifiedFields = [];
 
 	let newTitle = $("[data-noteeditor] [name='title']").val();
-	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+	let node = window.n3.getNoteByKey(noteKey);
 
 	if (newTitle != node.title) {
 		node.title = newTitle;
@@ -406,7 +413,7 @@ window.n3.action.closeDialog = function(noteKey, $trigger) {
 
 
 window.n3.action.activateNode = function(noteKey) {
-	let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+	let node = window.n3.getNoteByKey(noteKey);
 	node.setActive();
 };
 
@@ -453,7 +460,7 @@ function executeFunctionByName(functionName, context /*, args */) {
 window.n3.node.delete = function(noteKey, $trigger) {
 	var that = this;
 	return new Promise(function(resolve, reject) {
-		let node = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
+		let node = window.n3.getNoteByKey(noteKey);
 		if (node.title === "root") {
 			return;
 		}
@@ -569,6 +576,7 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 							let form = $("[data-noteeditor]");
 							window.n3.node.getNodeHTMLEditor(form).then(function(data) {
 								window.n3.initFancyTree(tree).then(function() {
+									storeService.indexTree($.ui.fancytree.getTree("[data-tree]").getRootNode().children);
 									resolve(true);
 								});
 							});
@@ -695,9 +703,21 @@ window.n3.node.updateInternalLinks = function(htmlText) {
 	internalLinks.each(function(index) {
 		let $this = $(this);
 		
-		let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey($this[0].dataset.linkNode);
+		let note = window.n3.getNoteByKey($this[0].dataset.linkNode);
 		if (note) {
-			$(this).html(note.data.path);
+
+			let noteIt = note;
+			let links = "";
+			let sep = "";
+			while (noteIt && noteIt.key !== "root_1") {
+				links = "<a href='#" + noteIt.key +"' data-link-note='" + noteIt.key + "'>" + noteIt.title + "</a>" + sep + links;
+				sep = " / ";
+				noteIt = noteIt.parent;
+			}
+
+			
+
+			$(this).html("[ " + links + " ]");
 		}
 	});
 
@@ -705,6 +725,7 @@ window.n3.node.updateInternalLinks = function(htmlText) {
 }
 
 window.n3.node.activateNode = function(node) {
+	console.log("activateNode now", node.title + " - " + node.key);
 	return new Promise(function(resolve) {
 
 		let $nodeDataOwner = $("[data-owner='node']");
@@ -725,8 +746,18 @@ window.n3.node.activateNode = function(node) {
 				if (node.data.backlinks) {
 					let htmlBacklinks = "<h4>Backlinks:</h4><ul>";
 					node.data.backlinks.forEach(function(backlinkNoteKey) {
-						let backlinkNote = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(backlinkNoteKey);
-						htmlBacklinks += "<li><a href='#" + backlinkNote.key  + "' data-backlink-node='" + backlinkNote.key +"'>" + backlinkNote.data.path + "</a></li>";
+						let backlinkNote = window.n3.getNoteByKey(backlinkNoteKey);
+
+						let noteIt = backlinkNote;
+						let links = "";
+						let sep = "";
+						while (noteIt && noteIt.key !== "root_1") {
+							links = "<a href='#" + noteIt.key +"' data-backlink-note='" + noteIt.key + "'>" + noteIt.title + "</a>" + sep + links;
+							sep = " / ";
+							noteIt = noteIt.parent;
+						}
+
+						htmlBacklinks += "<li>[ " + links + " ]</li>";
 					});
 					htmlBacklinks += "</ul>";
 					$("[data-backlinks]").html(htmlBacklinks);
@@ -841,38 +872,23 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			setup: function(editor) {
 
 				editor.on('dblclick', function(e) {
-					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNode) {
-						window.n3.action.activateNode(e.srcElement.dataset.linkNode);
+					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNote) {
+						window.n3.action.activateNode(e.srcElement.dataset.linkNote);
 					}
 				});
 				
 				editor.on("blur", function(e) {
-					if (editor.isDirty()) {
-
-						let $nodeDataOwner = $(editor.getContainer()).closest("[data-owner='node']");
-						let noteKey = $nodeDataOwner[0].dataset.notekey;
-
-						let currentNode = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
-						currentNode.data.description = editor.getContent();
-
-						let $htmlCntainer = $("<div />");
-						$htmlCntainer.html(currentNode.data.description);
-						let internalLinks = $("[data-link-node]", $htmlCntainer);
-						internalLinks.each(function(index) {
-							let $this = $(this);
-							if ($this[0].dataset.linkNode) {
-								
-								let linkedNote = $.ui.fancytree.getTree("[data-tree]").getNodeByKey($this[0].dataset.linkNode);
-								
-								if (linkedNote.data.backlinks === undefined) {
-									linkedNote.data.backlinks = [];
-								}
-								linkedNote.data.backlinks.push(currentNode.key);
-							}
-						});
+					// editor.isDirty() sometimes is wrong
+					
+					let $nodeDataOwner = $(editor.getContainer()).closest("[data-owner='node']");
+					let noteKey = $nodeDataOwner[0].dataset.notekey;
+					let currentNode = window.n3.getNoteByKey(noteKey);
+					
+					let editorContent = editor.getContent();
+					if (currentNode.data.description !== editorContent) {
+						currentNode.data.description = editorContent;
 
 						storeService.modifyNote(currentNode, ["description"]).then(function() { });
-						editor.setDirty(false);
 					}
 				});
 
@@ -900,8 +916,18 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					columns: 1,
 					onAction: function(autocompleteApi, rng, value) {
 						editor.selection.setRng(rng);
-						let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(value);
-						editor.insertContent("[<a href='#" + value +"' data-link-node='" + value +"'>" + note.data.path + "</a>]");
+						let note = window.n3.getNoteByKey(value);
+
+						let noteIt = note;
+						let links = "";
+						let sep = "";
+						while (noteIt && noteIt.key !== "root_1") {
+							links = "<a href='#" + noteIt.key +"' data-link-note='" + noteIt.key + "'>" + noteIt.title + "</a>" + sep + links;
+							sep = " / ";
+							noteIt = noteIt.parent;
+						}
+						
+						editor.insertContent("<div data-link-node='" + value +"'>[ " + links + " ]</div>");
 						autocompleteApi.hide();
 					},
 					fetch: function(pattern) {
@@ -909,11 +935,11 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 							let searchResults = [];
 
 							if (pattern.trim() === "") {	
-								searchResults = storeService.getIndexedDocuments(10);					
+								searchResults = storeService.getIndexedDocuments(20);					
 																
 							} else {
 
-								searchResults = storeService.search(pattern, 10);
+								searchResults = storeService.search(pattern, 20);
 								searchResults = searchResults[0].result;
 							}
 
