@@ -2,11 +2,14 @@
 
 TODO
 
+
+ - fix add screenshot/ dro pfile
  - file upload implmentieren - erst Drag & Drop in tree
  - list view with sorting
  - tags umimplementieren + filter by tag  
  - bilder gallery/slides
  - search index trash - zweiten index
+ - routing https://developer.chrome.com/docs/workbox/modules/workbox-routing/ ?
  
  
  - all files encryption
@@ -82,7 +85,11 @@ TODO
 		* kann ich mit bestimmte Person machen
 		* ist noch nicht freigegeben
 			* wartet auf ein Erreignis
-		
+
+
+ähnliche Apps:
+	https://github.com/anita-app/anita
+
 
 */
 
@@ -139,6 +146,15 @@ $(function() {
 	window.n3.action.handlers["open-modal"] = window.n3.ui.openModal;
 	window.n3.action.handlers["open-dropdown"] = window.n3.ui.openDropDown;
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
+
+	$(document).on("mouseover", "span.fancytree-node", function(event) {
+		//console.log("mouseover", this, event);
+		//$(this).css({"border": "1px solid black"});
+	});
+	$(document).on("mouseout", "span.fancytree-node", function(event) {
+		//console.log("mouseout", this, event);
+		//$(this).css({"border": "none"});
+	});
 
 	$(document).on("click", "[data-action]", function(event) {
 		let targetElement = event.target || event.srcElement;
@@ -200,10 +216,10 @@ $(function() {
 
 		if (isTask) {
 			$("[data-done]").show();
-			$("[data-priority]").show();
+			//$("[data-priority]").show();
 		} else {
 			$("[data-done]").hide();
-			$("[data-priority]").hide();
+			//$("[data-priority]").hide();
 		}
 
 		const newType = isTask ? "task" : "note";
@@ -366,7 +382,7 @@ window.n3.filterTree = function() {
 				showPriority.push("0");
 			}
 			if (showPriority.length > 0) {
-				show = show && node.data.type === "task" && showPriority.includes(node.data.priority + "");
+				show = show && showPriority.includes(node.data.priority + "");
 			}
 
 			if (searchText.trim().length > 0) {
@@ -775,10 +791,10 @@ window.n3.node.activateNode = function(node) {
 
 		if (node.data.type === "task") {
 			$("[data-done]").show();
-			$("[data-priority]").show();
+			//$("[data-priority]").show();
 		} else {
 			$("[data-done]").hide();
-			$("[data-priority]").hide();
+			//$("[data-priority]").hide();
 		}
 
 		$("[data-done] [name='done']").prop("checked", node.data.done !== undefined && node.data.done);
@@ -853,7 +869,6 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			toolbar_sticky: true,
 			toolbar_sticky_offset: 48,
 			min_height: 400,
-
 			inline_boundaries: false,
 			plugins: [
 				"advlist", "autolink", "lists", "link", "image", "charmap", "preview",
@@ -861,7 +876,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 				"insertdatetime", "media", "table", "code", "help", "wordcount",
 				"autoresize"
 			],
-			toolbar: "undo redo | formatselect | " +
+			toolbar: "undo redo | blocks | " +
 				"bold italic backcolor | alignleft aligncenter " +
 				"alignright alignjustify | bullist numlist outdent indent | " +
 				"removeformat | code | backlinks",
@@ -869,6 +884,25 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			powerpaste_html_import: "clean",
 			block_unsupported_drop: false,
 			setup: function(editor) {
+
+				editor.addShortcut("ctrl+s", "Save note", function () {
+					let $nodeDataOwner = $(editor.getContainer()).closest("[data-owner='node']");
+					let noteKey = $nodeDataOwner[0].dataset.notekey;
+					let currentNode = window.n3.getNoteByKey(noteKey);
+					
+					let editorContent = editor.getContent();
+					if (currentNode.data.description !== editorContent) {
+						currentNode.data.description = editorContent;
+
+						storeService.modifyNote(currentNode, ["description"]).then(function() { });
+					}
+				});
+
+				editor.on("drop", function(event) {
+					console.log("drop", event);
+					event.stopPropagation && event.stopPropagation();
+					event.preventDefault && event.preventDefault();
+				});
 
 				editor.on('dblclick', function(e) {
 					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNote) {
@@ -926,7 +960,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 							noteIt = noteIt.parent;
 						}
 						
-						editor.insertContent("<div data-link-node='" + value +"'>[ " + links + " ]</div>");
+						editor.insertContent("<span data-link-node='" + value +"' contenteditable='false'>[ " + links + " ]</span>");
 						autocompleteApi.hide();
 					},
 					fetch: function(pattern) {
@@ -1165,6 +1199,8 @@ window.n3.initFancyTree = function(rootNodes) {
 				} else {
 					$("span.fancytree-title", data.node.span).css({color: ""});
 				}
+
+				$(data.node.span).append("<span style='position: absolute; right: 0;'>H</span>");
 
 			},
 			dnd5: {

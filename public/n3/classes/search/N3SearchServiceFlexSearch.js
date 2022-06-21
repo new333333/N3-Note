@@ -25,13 +25,13 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 
 		let that = this;
 
-		let noteIt = note;
+		let noteIterator = note;
 		let path = "";
 		let sep = "";
-		while (noteIt && noteIt.key !== "root_1") {
-			path = noteIt.title + sep + path;
+		while (noteIterator && noteIterator.key !== "root_1") {
+			path = noteIterator.title + sep + path;
 			sep = " / ";
-			noteIt = noteIt.parent;
+			noteIterator = noteIterator.parent;
 		}
 	
 		let descriptionClean = that.#cleanDescription(note.data.description);
@@ -76,26 +76,30 @@ class N3SearchServiceFlexSearch extends N3SearchServiceAbstract {
 	modifyNote(note, trash = false) {
 		let that = this;
 
-		let noteIt = note;
-		let path = "";
-		let sep = "";
-		while (noteIt && noteIt.key !== "root_1") {
-			path = noteIt.title + sep + path;
-			sep = " / ";
-			noteIt = noteIt.parent;
+		if (trash) {
+			this.#flexSearchDocument.remove(note.key);
+		} else {
+
+			let noteIterator = note;
+			let path = "";
+			let sep = "";
+			while (noteIterator && noteIterator.key !== "root_1") {
+				path = noteIterator.title + sep + path;
+				sep = " / ";
+				noteIterator = noteIterator.parent;
+			}
+
+			let descriptionClean = that.#cleanDescription(note.data.description);
+		
+			this.#flexSearchDocument.update({
+				id: note.key,
+				type: "note",
+				title: note.title,
+				path: path,
+				content: note.title + " " + descriptionClean,
+				trash: trash
+			});
 		}
-
-		let descriptionClean = that.#cleanDescription(note.data.description);
-	
-		this.#flexSearchDocument.update({
-			id: note.key,
-			type: "note",
-			title: note.title,
-			path: path,
-			content: note.title + " " + descriptionClean,
-			trash: trash
-		});
-
 	}
 
 	#cleanDescription(description) {
