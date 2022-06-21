@@ -14,14 +14,6 @@
 
 <body data-owner="node" data-app class="n3 n3-main n3-no-nodes">
 
-	<div class="ui olive pointing top fixed inverted  menu">
-		<div class="item">
-			<button data-action="add-node" class="ui button inverted ">
-				<i class="icon plus"></i> Note
-			</button>
-		</div>
-	</div>
-
 	<div class="n3-root">
 		<div class="n3-wrapper" data-flex-splitter-horizontal>
 			<div class="n3-sidebar" style="min-width: 50px;">
@@ -105,6 +97,9 @@
 			<div role="separator"></div>
 			<div class="n3-content">
 				<div data-tab="note" data-noteeditor class="ui tab segment active" style="padding: 0;">
+					<div data-breadcrumbs style="padding: 10px; font-size: 0.9rem;">
+					</div>
+
 					<div class="n3-note-title-row" style="padding: 0 10px;">
 						<div>
 							<div class="ui checkbox" style="display: none; " data-done>
@@ -131,13 +126,6 @@
 						</div>
 					</div>
 					<div style="padding: 0 10px; margin-bottom: 10px;">
-						<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
-							<input name="tags" type="hidden">
-							<i class="dropdown icon"></i>
-							<div class="default text">Add tag</div>
-							<div class="menu">
-							</div>
-						</div>
 
 						<div class="ui checkbox" style="margin-right: 10px;">
 							<input type="checkbox" data-is-task>
@@ -152,7 +140,13 @@
 							</div>
 						</div>
 						
-						
+						<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
+							<input name="tags" type="hidden">
+							<i class="dropdown icon"></i>
+							<div class="default text">Add tag</div>
+							<div class="menu">
+							</div>
+						</div>						
 						
 					</div>
 					<div class="n3-node-desciption" name="description" contenteditable="true"></div>

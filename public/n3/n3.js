@@ -148,13 +148,22 @@ $(function() {
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
 
 	$(document).on("mouseover", "span.fancytree-node", function(event) {
-		//console.log("mouseover", this, event);
-		//$(this).css({"border": "1px solid black"});
+		$(this).addClass("n3-mouseover");
 	});
 	$(document).on("mouseout", "span.fancytree-node", function(event) {
-		//console.log("mouseout", this, event);
-		//$(this).css({"border": "none"});
+		$(this).removeClass("n3-mouseover");
 	});
+
+	$(document).on("click", "[data-node-add]", function(event) {
+		window.n3.node.add();
+	});
+
+	$(document).on("click", "[data-breadcrumbs] [data-link-note]", function() {
+		if (this.dataset && this.dataset.linkNote) {
+			window.n3.action.activateNode(this.dataset.linkNote);
+		}
+	});
+	
 
 	$(document).on("click", "[data-action]", function(event) {
 		let targetElement = event.target || event.srcElement;
@@ -200,11 +209,6 @@ $(function() {
 				storeService.modifyNote(node, ["title"]).then(function() { });
 			}
 		}
-	});
-
-	$(document).on("click", "[data-attachment]", function() {
-		// TODO not ready...
-		console.log(this);
 	});
 
 	$(document).on("click", "[data-noteeditor] [name='title']", function() {
@@ -746,9 +750,19 @@ window.n3.node.activateNode = function(node) {
 		let $nodeDataOwner = $("[data-owner='node']");
 		$nodeDataOwner[0].dataset.notekey = node.key;
 
-		
-
 		let form = $("[data-noteeditor]");
+
+
+		let noteIt = node;
+		let breadcrumbs = "";
+		let sep = "";
+		while (noteIt && noteIt.key !== "root_1") {
+			breadcrumbs = "<a href='#" + noteIt.key +"' data-link-note='" + noteIt.key + "'>" + noteIt.title + "</a>" + sep + breadcrumbs;
+			sep = " / ";
+			noteIt = noteIt.parent;
+		}	
+		$("[data-breadcrumbs]").html(breadcrumbs);
+		
 
 		$("[name='title']", form).val(node.title);
 		var description = ((node || {}).data || {}).description || "";
@@ -867,7 +881,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			target: $("[name='description']", form)[0],
 			menubar: false,
 			toolbar_sticky: true,
-			toolbar_sticky_offset: 48,
+			toolbar_sticky_offset: 0,
 			min_height: 400,
 			inline_boundaries: false,
 			plugins: [
@@ -1200,7 +1214,7 @@ window.n3.initFancyTree = function(rootNodes) {
 					$("span.fancytree-title", data.node.span).css({color: ""});
 				}
 
-				$(data.node.span).append("<span style='position: absolute; right: 0;'>H</span>");
+				$(data.node.span).append("<button data-node-add data-node-key='" + data.node.key + "' class='ui compact icon button mini'><i class='plus square outline icon'></i></button>");
 
 			},
 			dnd5: {
