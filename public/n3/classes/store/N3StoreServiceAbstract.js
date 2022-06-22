@@ -139,10 +139,13 @@ class N3StoreServiceAbstract {
 			note.data.links.forEach(function(noteKey) {
 				if (!currentNoteLinks.includes(noteKey)) {
 					let backlinkNote = window.n3.getNoteByKey(noteKey);
-					var index = backlinkNote.data.backlinks.indexOf(note.key);
-					if (index !== -1) {
-						backlinkNote.data.backlinks.splice(index, 1);
-						console.log("remove from backlink");
+					// TODO: removed, what to do?
+					if (backlinkNote) {
+						var index = backlinkNote.data.backlinks.indexOf(note.key);
+						if (index !== -1) {
+							backlinkNote.data.backlinks.splice(index, 1);
+							console.log("remove from backlink");
+						}
 					}
 				}
 			});
@@ -165,9 +168,11 @@ class N3StoreServiceAbstract {
 
 			function indexSubnotes(note) {
 				that.searchService.modifyNote(note);
-				note.children.forEach(function(child) {
-					indexSubnotes(child)
-				});
+				if (note.children) {
+					note.children.forEach(function(child) {
+						indexSubnotes(child)
+					});
+				}
 			}
 
 			return Promise.resolve(note);
@@ -183,9 +188,11 @@ class N3StoreServiceAbstract {
 
 			function indexSubnotes(note) {
 				that.searchService.modifyNote(note);
-				note.children.forEach(function(child) {
-					indexSubnotes(child)
-				});
+				if (note.children) {
+					note.children.forEach(function(child) {
+						indexSubnotes(child)
+					});
+				}
 			}
 
 			return Promise.resolve();
@@ -201,9 +208,11 @@ class N3StoreServiceAbstract {
 
 			function indexSubnotes(note) {
 				that.searchService.modifyNote(note, true);
-				note.children.forEach(function(child) {
-					indexSubnotes(child)
-				});
+				if (note.children) {
+					note.children.forEach(function(child) {
+						indexSubnotes(child)
+					});
+				}
 			}
 
 			return Promise.resolve();

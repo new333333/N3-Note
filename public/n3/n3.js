@@ -3,12 +3,12 @@
 TODO
 
 
- - fix add screenshot/ dro pfile
+ - fix add screenshot/ drop file
  - file upload implmentieren - erst Drag & Drop in tree
  - list view with sorting
  - tags umimplementieren + filter by tag  
  - bilder gallery/slides
- - search index trash - zweiten index
+ - search index trash - zweiten index?
  - routing https://developer.chrome.com/docs/workbox/modules/workbox-routing/ ?
  
  
@@ -39,9 +39,6 @@ TODO
  - tree- icon in tree
  - files
  - drag and drop files in tinymce
- - jpournal?
- - inbox?
- - personen?
  - performance tests
  - import local images from local - fpr copy/pdate from Outlook - it's not possible to access local files (security: Access to image at 'file:///E:/Projekte/n3todo-local/public/img/n3todo-logo_200_58.png' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: http, data, chrome, chrome-extension, chrome-untrusted, https.)
    Tried all Approaches from: https://stackoverflow.com/questions/6150289/how-can-i-convert-an-image-into-base64-string-using-javascript
@@ -918,7 +915,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					event.preventDefault && event.preventDefault();
 				});
 
-				editor.on('dblclick', function(e) {
+				editor.on('click', function(e) {
 					if (e.srcElement &&  e.srcElement.dataset && e.srcElement.dataset.linkNote) {
 						window.n3.action.activateNode(e.srcElement.dataset.linkNote);
 					}
@@ -932,7 +929,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					let currentNode = window.n3.getNoteByKey(noteKey);
 					
 					let editorContent = editor.getContent();
-					if (currentNode.data.description !== editorContent) {
+					if (currentNode && currentNode.data && currentNode.data.description !== editorContent) {
 						currentNode.data.description = editorContent;
 
 						storeService.modifyNote(currentNode, ["description"]).then(function() { });
@@ -1353,6 +1350,10 @@ window.n3.initFancyTree = function(rootNodes) {
 				}
 			}
 		});
+
+		if (!rootNodes || rootNodes.length == 0) {
+			window.n3.node.add();
+		}
 
 		resolve();
 	});
