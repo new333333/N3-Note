@@ -3,10 +3,13 @@
 TODO
 
  -new file structure:
+    - first file with version!
     - tree.json - keys, childrens, expanded
 	- evry note in one file - all infos
 	- trash -> removes only from tree.json and puts in tree-trash.json! 
-
+ 
+ - add demo
+ - custom domain
  - fix add screenshot/ drop file
  - file upload implmentieren - erst Drag & Drop in tree
  - list view with sorting
@@ -123,35 +126,6 @@ window.n3.priorities = [
 ];
 
 window.n3.tags = [];
-/* [
-	{
-		title: 'Andorra', 
-	 	notes: ["aaa", "bbb"]},
-	{ title: 'United Arab Emirates' },
-	{ title: 'Afghanistan' },
-	{ title: 'Antigua' },
-	{ title: 'Anguilla' },
-	{ title: 'Albania' },
-	{ title: 'Armenia' },
-	{ title: 'Netherlands Antilles' },
-	{ title: 'Angola' },
-	{ title: 'Argentina' },
-	{ title: 'American Samoa' },
-	{ title: 'Austria' },
-	{ title: 'Australia' },
-	{ title: 'Aruba' },
-	{ title: 'Aland Islands' },
-	{ title: 'Azerbaijan' },
-	{ title: 'Bosnia' },
-	{ title: 'Barbados' },
-	{ title: 'Bangladesh' },
-	{ title: 'Belgium' },
-	{ title: 'Burkina Faso' },
-	{ title: 'Bulgaria' },
-	{ title: 'Bahrain' },
-	{ title: 'Burundi' }
-];*/
-
 
 
 window.n3.node = window.n3.node || {
@@ -184,42 +158,50 @@ $(function() {
 
 
 
-	$('[data-sarch-tag]').search({
+	window.n3.tagInput = $("[data-sarch-tag]").search({
 		minCharacters: 0,
 		onSelect: function(result, response) {
-			console.log("onSelect", this, result, response);
+			window.n3.tagInput.before(window.n3.getTagHTML(result.title));
 
-
-
-			$('[data-sarch-tag]').before(window.n3.getTagHTML(result.title));
-			// $('[data-sarch-tag]').search("set value", "");
 
 			// need these three lines to remove value and close search results
-			$('[data-sarch-tag]').search("set value", "");
-			$('[data-sarch-tag]').search("query");
+			window.n3.tagInput.search("set value", "");
+			window.n3.tagInput.search("query");
+
+
+			save note
 			return false;
 		},	
 		showNoResults: false,
-		source: window.n3.tags
+		cache: false,
+		apiSettings: {
+			responseAsync: function(settings, callback) {			
+				callback({
+					success: true,
+					results: window.n3.tags
+				});
+			}
+		}
 	}).on('keypress',function(e) {
 		if(e.which == 13) {
-			let value = $('[data-sarch-tag]').search("get value").trim();
+			let value = window.n3.tagInput.search("get value").trim();
 			if (value.length > 0) {
-				$('[data-sarch-tag]').before(window.n3.getTagHTML(value));
-				$('[data-sarch-tag]').search("set value", "");
+				window.n3.tagInput.before(window.n3.getTagHTML(value));
+				window.n3.tagInput.search("set value", "");
 
 				let noteKey = undefined;
 				let $ticketDataOwner = this.closest("[data-owner='node']");
 				if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
 					noteKey = $ticketDataOwner.dataset.notekey;
 				}
-
+				
 				window.n3.tags.push({
 					title: value,
 					notes: [
 						noteKey
 					]
 				});
+				save note
 			}
 		}
 	});
@@ -227,7 +209,7 @@ $(function() {
 	$(document).on("click", "[data-delete-tag]", function(event) {
 		console.log("delete tag", this.dataset.tag);
 		$("[data-tag='" + this.dataset.tag + "']").remove();
-
+		// don't need to remove tag from list
 	});
 
 	$(document).on("mouseover", "span.fancytree-node", function(event) {
