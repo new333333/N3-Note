@@ -1,4 +1,4 @@
-# n3todo
+# N3-Note
 
  * private and offline first, tree structured notes and tasks for life time
  * no registration, no login
