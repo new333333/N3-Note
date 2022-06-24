@@ -2,6 +2,10 @@
 
 TODO
 
+ -new file structure:
+    - tree.json - keys, childrens, expanded
+	- evry note in one file - all infos
+	- trash -> removes only from tree.json and puts in tree-trash.json! 
 
  - fix add screenshot/ drop file
  - file upload implmentieren - erst Drag & Drop in tree
@@ -10,8 +14,10 @@ TODO
  - bilder gallery/slides
  - search index trash - zweiten index?
  - routing https://developer.chrome.com/docs/workbox/modules/workbox-routing/ ?
- 
- 
+ - new feature: change to typ (task, note) on (date)
+ - trash
+ - versionen
+ - search trash and versions
  - all files encryption
  - google drive storage
  - plan 3 tasks for today - choose from list (https://www.youtube.com/watch?v=oJTiq-Pqp9k)
@@ -27,10 +33,10 @@ TODO
  - export als ZIP (semantic UI first)
  - choose folder list (semantic UI first)
  - github link und freigabe
+ - list assets + info if in use and where
  - full filter options (filet completed/archived als beide oder nur eine)
  - close all nodes/expande all nodes utton fpr tree
  - consolidate store events - gleiche events mit gleich wparameter müssen nicht wiederhol1t werden! - veielleicht brauche ich merhere asyncqueues? 
- - display orphan files als liste
  - daten strzuktur version einbauen --! - bei start konvertierung zum neue struktur!
 	  --> noch besser: foldere mit versionnummer und in xml version nummer
 	  --> nowy plik conf.json
@@ -92,31 +98,62 @@ TODO
 
 
 window.n3 = window.n3 || {};
-window.n3.task = window.n3.task || {
-	"priority": [
-		{
-			id: 3,
-			text: "Urgent &amp; Important",
-			selected: false
-		},
-		{
-			id: 2,
-			text: "Urgent",
-			selected: false
-		},
-		{
-			id: 1,
-			text: "Important",
-			selected: false
-		},
-		{
-			id: 0,
-			text: "No priority",
-			selected: true
-		}
-	],
-	"tagsList": []
-};
+
+window.n3.priorities = [
+	{
+		id: 3,
+		text: "Urgent &amp; Important",
+		selected: false
+	},
+	{
+		id: 2,
+		text: "Urgent",
+		selected: false
+	},
+	{
+		id: 1,
+		text: "Important",
+		selected: false
+	},
+	{
+		id: 0,
+		text: "No priority",
+		selected: true
+	}
+];
+
+window.n3.tags = [];
+/* [
+	{
+		title: 'Andorra', 
+	 	notes: ["aaa", "bbb"]},
+	{ title: 'United Arab Emirates' },
+	{ title: 'Afghanistan' },
+	{ title: 'Antigua' },
+	{ title: 'Anguilla' },
+	{ title: 'Albania' },
+	{ title: 'Armenia' },
+	{ title: 'Netherlands Antilles' },
+	{ title: 'Angola' },
+	{ title: 'Argentina' },
+	{ title: 'American Samoa' },
+	{ title: 'Austria' },
+	{ title: 'Australia' },
+	{ title: 'Aruba' },
+	{ title: 'Aland Islands' },
+	{ title: 'Azerbaijan' },
+	{ title: 'Bosnia' },
+	{ title: 'Barbados' },
+	{ title: 'Bangladesh' },
+	{ title: 'Belgium' },
+	{ title: 'Burkina Faso' },
+	{ title: 'Bulgaria' },
+	{ title: 'Bahrain' },
+	{ title: 'Burundi' }
+];*/
+
+
+
 window.n3.node = window.n3.node || {
 	"tinymce": false
 };
@@ -128,7 +165,7 @@ window.n3.action = window.n3.action || {
 
 window.n3.localFolder = {};
 
-let storeService;
+window.n3.storeService = false;
 
 $(function() {
 	
@@ -136,13 +173,62 @@ $(function() {
 
 
 	window.n3.action.handlers["activate-node"] = window.n3.action.activateNode;
-	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.select;
-	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
 	window.n3.action.handlers["add-node"] = window.n3.node.add;
 	window.n3.action.handlers["delete-node-confirm"] = window.n3.node.delete;
+
+	window.n3.action.handlers["choose-folder"] = window.n3.localFolder.select;
+	window.n3.action.handlers["verify-folder"] = window.n3.localFolder.queryVerifyPermission;
+
 	window.n3.action.handlers["open-modal"] = window.n3.ui.openModal;
-	window.n3.action.handlers["open-dropdown"] = window.n3.ui.openDropDown;
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
+
+
+
+	$('[data-sarch-tag]').search({
+		minCharacters: 0,
+		onSelect: function(result, response) {
+			console.log("onSelect", this, result, response);
+
+
+
+			$('[data-sarch-tag]').before(window.n3.getTagHTML(result.title));
+			// $('[data-sarch-tag]').search("set value", "");
+
+			// need these three lines to remove value and close search results
+			$('[data-sarch-tag]').search("set value", "");
+			$('[data-sarch-tag]').search("query");
+			return false;
+		},	
+		showNoResults: false,
+		source: window.n3.tags
+	}).on('keypress',function(e) {
+		if(e.which == 13) {
+			let value = $('[data-sarch-tag]').search("get value").trim();
+			if (value.length > 0) {
+				$('[data-sarch-tag]').before(window.n3.getTagHTML(value));
+				$('[data-sarch-tag]').search("set value", "");
+
+				let noteKey = undefined;
+				let $ticketDataOwner = this.closest("[data-owner='node']");
+				if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
+					noteKey = $ticketDataOwner.dataset.notekey;
+				}
+
+				window.n3.tags.push({
+					title: value,
+					notes: [
+						noteKey
+					]
+				});
+			}
+		}
+	});
+
+	$(document).on("click", "[data-delete-tag]", function(event) {
+		console.log("delete tag", this.dataset.tag);
+		$("[data-tag='" + this.dataset.tag + "']").remove();
+
+	});
 
 	$(document).on("mouseover", "span.fancytree-node", function(event) {
 		$(this).addClass("n3-mouseover");
@@ -160,7 +246,16 @@ $(function() {
 			window.n3.action.activateNode(this.dataset.linkNote);
 		}
 	});
-	
+
+	$(document).on("click", "[data-backlinks-title]", function() {
+		if ($(this).hasClass("active")) {
+			$("[data-backlinks-title]").removeClass("active");
+			$("[data-backlinks-content]").removeClass("active");
+		} else {
+			$("[data-backlinks-title]").addClass("active");
+			$("[data-backlinks-content]").addClass("active");
+		}
+	});
 
 	$(document).on("click", "[data-action]", function(event) {
 		let targetElement = event.target || event.srcElement;
@@ -203,7 +298,7 @@ $(function() {
 			let newTitle = $(this).val();
 			if (node.title != newTitle) {
 				node.setTitle(newTitle);
-				storeService.modifyNote(node, ["title"]).then(function() { });
+				window.n3.storeService.modifyNote(node, ["title"]).then(function() { });
 			}
 		}
 	});
@@ -212,20 +307,21 @@ $(function() {
 		$(this).select();
 	});
 
-	$(document).on("change", "[data-is-task]", function() {
-		const isTask = $(this).prop("checked");
+	$(document).on("click", "[data-type]", function() {
+		const newType = this.dataset.type;
 
-		if (isTask) {
+		if (newType === "task") {
 			$("[data-done]").show();
-			//$("[data-priority]").show();
 		} else {
 			$("[data-done]").hide();
-			//$("[data-priority]").hide();
 		}
+	
+		$("[data-type='" + newType + "']").addClass("active");
+		$("[data-type='" + newType + "']").addClass("primary");
+		$("[data-type='" + (newType === "task" ? "note" : "task") + "']").removeClass("active");
+		$("[data-type='" + (newType === "task" ? "note" : "task") + "']").removeClass("primary");
 
-		const newType = isTask ? "task" : "note";
-
-		let $nodeDataOwner = this.closest("[data-owner='node']");
+		let $nodeDataOwner = this.closest("[data-owner]");
 		let noteKey = false;
 		if ($nodeDataOwner && $nodeDataOwner.dataset.notekey) {
 			noteKey = $nodeDataOwner.dataset.notekey;
@@ -242,7 +338,7 @@ $(function() {
 					parentNode = parentNode.parent;
 				}
 
-				storeService.modifyNote(node, ["type"]).then(function() { });
+				window.n3.storeService.modifyNote(node, ["type"]).then(function() { });
 			}
 		}
 	});
@@ -265,7 +361,7 @@ $(function() {
 				parentNode = parentNode.parent;
 			}
 			
-			storeService.modifyNote(node, ["done"]).then(function() { });
+			window.n3.storeService.modifyNote(node, ["done"]).then(function() { });
 		}
 	});
 
@@ -314,6 +410,15 @@ $(function() {
 });
 
 
+window.n3.getTagHTML = function(tag) {
+	let newTagTemplate = `<a class="ui blue tag label" data-tag="${tag}">${tag}</a>		
+	<button class="transparent mini ui icon button" data-tooltip="Remove tag '${tag}'" data-tag="${tag}" data-delete-tag="${tag}">
+		<i class="icon trash"></i>
+	</button>`;
+
+	return newTagTemplate;
+}
+
 window.n3.getNoteByKey = function(noteKey) {
 	let note = $.ui.fancytree.getTree("[data-tree]").getNodeByKey(noteKey);
 	return note;
@@ -334,7 +439,7 @@ window.n3.filterTree = function() {
 		$.ui.fancytree.getTree("[data-tree]").clearFilter();
 	} else {
 
-		let searchResults = storeService.search(searchText);
+		let searchResults = window.n3.storeService.search(searchText);
 		let foundNoteKeys = [];
 
 		if (searchResults.length > 0) {
@@ -418,7 +523,7 @@ window.n3.ui.onUnload = function(event) {
 		}
 	});
 
-	storeService.modifyNote(node, modifiedFields).then(function() { });
+	window.n3.storeService.modifyNote(node, modifiedFields).then(function() { });
 }
 
 
@@ -432,10 +537,6 @@ window.n3.action.closeDialog = function(noteKey, $trigger) {
 window.n3.action.activateNode = function(noteKey) {
 	let node = window.n3.getNoteByKey(noteKey);
 	node.setActive();
-};
-
-window.n3.ui.openDropDown = function(noteKey, $trigger) {
-	$trigger.classList.toggle('is-active');
 };
 
 
@@ -484,7 +585,7 @@ window.n3.node.delete = function(noteKey, $trigger) {
 		let parentNode = node.parent;
 
 
-		storeService.moveNoteToTrash(node).then(function() {
+		window.n3.storeService.moveNoteToTrash(node).then(function() {
 			node.remove();
 
 			if (parentNode.title != "root") {
@@ -555,7 +656,7 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 		})(dir).then(function(dir) {
 			window.n3.localFolder.verifyPermission(dir, true).then(function(granted) {
 				if (granted) {
-					storeService = new N3StoreServiceFileSystem(dir);
+					window.n3.storeService = new N3StoreServiceFileSystem(dir);
 
 
 					set("localFolder", dir).then(function() {
@@ -564,9 +665,9 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 
 					window.n3.modal.closeAll(true);
 
-					storeService.migrateStore().then(function() {
+					window.n3.storeService.migrateStore().then(function() {
 					
-						storeService.loadNotesTree().then(function(tree) {
+						window.n3.storeService.loadNotesTree().then(function(tree) {
 
 							tree = setCheckBoxFromTyp(tree);
 
@@ -593,7 +694,7 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 							let form = $("[data-noteeditor]");
 							window.n3.node.getNodeHTMLEditor(form).then(function(data) {
 								window.n3.initFancyTree(tree).then(function() {
-									storeService.indexTree($.ui.fancytree.getTree("[data-tree]").getRootNode().children);
+									window.n3.storeService.indexTree($.ui.fancytree.getTree("[data-tree]").getRootNode().children);
 									resolve(true);
 								});
 							});
@@ -706,7 +807,7 @@ window.n3.node.add = function() {
 	let newNode = node.addNode(newNodeData, "child");
 
 	newNode.setActive();
-	storeService.addNote(newNode).then(function() { });
+	window.n3.storeService.addNote(newNode).then(function() { });
 }
 
 window.n3.node.updateInternalLinks = function(htmlText) {
@@ -763,14 +864,15 @@ window.n3.node.activateNode = function(node) {
 
 		$("[name='title']", form).val(node.title);
 		var description = ((node || {}).data || {}).description || "";
-		storeService.loadImages("node", node.key, description).then(function(htmlText) {
+		window.n3.storeService.loadImages("node", node.key, description).then(function(htmlText) {
 			window.n3.node.getNodeHTMLEditor(form).then(function(htmlEditor) {
 				htmlText = window.n3.node.updateInternalLinks(htmlText);
 				htmlEditor.setContent(htmlText);
 				htmlEditor.setDirty(false);
 
 				if (node.data.backlinks) {
-					let htmlBacklinks = "<h4>Backlinks:</h4><ul>";
+					let htmlBacklinks = "<ul class='ui list'>";
+					let countBacklinks = 0;
 					node.data.backlinks.forEach(function(backlinkNoteKey) {
 						let backlinkNote = window.n3.getNoteByKey(backlinkNoteKey);
 
@@ -782,15 +884,17 @@ window.n3.node.activateNode = function(node) {
 							sep = " / ";
 							noteIt = noteIt.parent;
 						}
-
+						countBacklinks++;
 						htmlBacklinks += "<li>[ " + links + " ]</li>";
 					});
 					htmlBacklinks += "</ul>";
-					$("[data-backlinks]").html(htmlBacklinks);
-					//htmlEditor.execCommand("ToggleSidebar", false, "backlinks");
+					$("[data-backlinks-content]").html(htmlBacklinks);
+					$("[data-backlinks-count]").html(countBacklinks);
+					$("[data-backlinks-count]").addClass("blue");
 				} else {
-					$("[data-backlinks]").html("");
-					//htmlEditor.execCommand("ToggleSidebar", false, "backlinks");
+					$("[data-backlinks-content]").html("");
+					$("[data-backlinks-count]").html("0");
+					$("[data-backlinks-count]").removeClass("blue");
 				}
 
 				
@@ -798,21 +902,17 @@ window.n3.node.activateNode = function(node) {
 			});
 		});
 
-		$("[data-is-task]").prop("checked", node.data.type === "task");
 
 		if (node.data.type === "task") {
 			$("[data-done]").show();
-			//$("[data-priority]").show();
 		} else {
 			$("[data-done]").hide();
-			//$("[data-priority]").hide();
 		}
-
 		$("[data-done] [name='done']").prop("checked", node.data.done !== undefined && node.data.done);
 
 		//////////////////////////////
 
-		let priorityDropDown = window.n3.task.priority.map(function(priority) {
+		let priorityDropDownValues = window.n3.priorities.map(function(priority) {
 			return {
 				name: priority.text,
 				value: priority.id + "",
@@ -820,9 +920,9 @@ window.n3.node.activateNode = function(node) {
 			}
 		});
 		let priorityDropdown = $("[data-priority]", form).dropdown({
-			values: priorityDropDown
+			values: priorityDropDownValues
 		});
-		let selectedPriority = window.n3.task.priority.find(function(priority) {
+		let selectedPriority = window.n3.priorities.find(function(priority) {
 			return node.data.priority !== undefined && (priority.id + "") === (node.data.priority + "");
 		});
 		if (!selectedPriority) {
@@ -831,12 +931,19 @@ window.n3.node.activateNode = function(node) {
 		priorityDropdown.dropdown("set selected", selectedPriority.id + "");
 		priorityDropdown.dropdown("setting", "onChange", function(value, text, $choice) {
 			node.data.priority = value;
-			storeService.modifyNote(node, ["priority"]).then(function() {});
+			window.n3.storeService.modifyNote(node, ["priority"]).then(function() {});
 			node.renderTitle();
 		});
 
 		//////////////////////////////
 
+		$("[data-type='" + node.data.type + "']").addClass("active");
+		$("[data-type='" + node.data.type + "']").addClass("primary");
+		$("[data-type='" + (node.data.type === "task" ? "note" : "task") + "']").removeClass("active");
+		$("[data-type='" + (node.data.type === "task" ? "note" : "task") + "']").removeClass("primary");
+
+		//////////////////////////////
+/*
 		let tagsDropDownMenu = window.n3.task.tagsList.map(function(tag) {
 			return {
 				name: tag,
@@ -858,9 +965,9 @@ window.n3.node.activateNode = function(node) {
 		}
 		tagsDropDown.dropdown("setting", "onChange", function(value, text, $choice) {
 			node.data.tags = value;
-			storeService.modifyNote(node, ["tags"]).then(function() {});
+			window.n3.storeService.modifyNote(node, ["tags"]).then(function() {});
 		});
-
+*/
 	});
 }
 
@@ -890,7 +997,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 			toolbar: "undo redo | blocks | " +
 				"bold italic backcolor | alignleft aligncenter " +
 				"alignright alignjustify | bullist numlist outdent indent | " +
-				"removeformat | code | backlinks",
+				"removeformat | code",
 			powerpaste_word_import: "clean",
 			powerpaste_html_import: "clean",
 			block_unsupported_drop: false,
@@ -905,7 +1012,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					if (currentNode.data.description !== editorContent) {
 						currentNode.data.description = editorContent;
 
-						storeService.modifyNote(currentNode, ["description"]).then(function() { });
+						window.n3.storeService.modifyNote(currentNode, ["description"]).then(function() { });
 					}
 				});
 
@@ -932,7 +1039,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 					if (currentNode && currentNode.data && currentNode.data.description !== editorContent) {
 						currentNode.data.description = editorContent;
 
-						storeService.modifyNote(currentNode, ["description"]).then(function() { });
+						window.n3.storeService.modifyNote(currentNode, ["description"]).then(function() { });
 					}
 				});
 
@@ -979,11 +1086,11 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 							let searchResults = [];
 
 							if (pattern.trim() === "") {	
-								searchResults = storeService.getIndexedDocuments(20);					
+								searchResults = window.n3.storeService.getIndexedDocuments(20);					
 																
 							} else {
 
-								searchResults = storeService.search(pattern, 20);
+								searchResults = window.n3.storeService.search(pattern, 20);
 								searchResults = searchResults[0].result;
 							}
 
@@ -1015,27 +1122,6 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 							
 						});
 					}
-				});
-
-				editor.ui.registry.addSidebar('backlinks', {
-					tooltip: 'Backlinks',
-					icon: 'link',
-					onSetup: (api) => {
-					  //console.log('Render panel', api.element());
-					  api.element().innerHTML = '<div data-backlinks class="n3backlinks-sidebar">Loading backlinks...</div>';
-					},
-					onShow: (api) => {
-					  //console.log('Show panel', api.element());
-					  // api.element().innerHTML = '<div data-backlinks class="n3backlinks-sidebar">Loading backlinks...</div>';
-					  //$(api.element()).css({"border": "1px solid black; "});
-					},
-					onHide: (api) => {
-					  //console.log('Hide panel', api.element());
-					}
-				});
-
-				editor.on('SkinLoaded', () => {
-					editor.execCommand("ToggleSidebar", false, "backlinks");
 				});
 				
 				
@@ -1081,7 +1167,7 @@ window.n3.initFancyTree = function(rootNodes) {
 			source: rootNodes,
 			lazyLoad: function(event, data) {
 				data.result = new Promise(function(resolve, reject) {
-					storeService.loadNotes(data.node.key).then(function(children) {
+					window.n3.storeService.loadNotes(data.node.key).then(function(children) {
 						resolve(children);
 					});
 				});
@@ -1119,7 +1205,7 @@ window.n3.initFancyTree = function(rootNodes) {
 					parentNode = parentNode.parent;
 				}
 
-				storeService.modifyNote(data.node, ["done"]).then(function() { });
+				window.n3.storeService.modifyNote(data.node, ["done"]).then(function() { });
 
 			},
 			// doesn't work 'placeholder: "There's no tasks in this note.",
@@ -1165,10 +1251,10 @@ window.n3.initFancyTree = function(rootNodes) {
 				}
 			},
 			expand: function(event, data, a, b) {
-				storeService.expandNote(data.node, true);
+				window.n3.storeService.expandNote(data.node, true);
 			},
 			collapse: function(event, data) {
-				storeService.expandNote(data.node, false);
+				window.n3.storeService.expandNote(data.node, false);
 			},
 			loadChildren: function(event, data) {
 				data.node.visit(function(subNode) {
@@ -1180,6 +1266,11 @@ window.n3.initFancyTree = function(rootNodes) {
 				});
 			},
 			enhanceTitle: function(event, data) {
+				/*
+				$(data.node.span).prepend(
+					$("<span class='n3-node-background'></span>")
+				);
+				*/
 
 				let tasksAmountOnNode = 0;
 				let tasksAmount = 0;
@@ -1307,8 +1398,8 @@ window.n3.initFancyTree = function(rootNodes) {
 						// ignore mode, always move
 						var oldParentNote = data.otherNode.parent;
 						data.otherNode.moveTo(node, data.hitMode);
-						// TODO: first call storeService.moveNote!! - the same way change all other moveNote places!
-						storeService.moveNote(data.otherNode, oldParentNote).then(function() { });
+						// TODO: first call window.n3.storeService.moveNote!! - the same way change all other moveNote places!
+						window.n3.storeService.moveNote(data.otherNode, oldParentNote).then(function() { });
 						data.tree.render(true, false);
 					} else if (data.files.length) {
 						// Drop files
@@ -1321,7 +1412,7 @@ window.n3.initFancyTree = function(rootNodes) {
 							
 
 							let newNode = node.addNode(newNodeData, data.hitMode);
-							storeService.addNote(newNode).then(function() { });
+							window.n3.storeService.addNote(newNode).then(function() { });
 							// TODO: upload file!!!
 
 
@@ -1343,7 +1434,7 @@ window.n3.initFancyTree = function(rootNodes) {
 						newNodeData.title = firstLine.trim();
 						newNodeData.data.description = text;
 						let newNode = node.addNode(newNodeData, data.hitMode);
-						storeService.addNote(newNode).then(function() { });
+						window.n3.storeService.addNote(newNode).then(function() { });
 
 					}
 					node.setExpanded();

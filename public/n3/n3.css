@@ -200,7 +200,7 @@ body {
     border: none;
 }
 
-.n3-sidebar, .n3-tree ul.fancytree-container, .n3-filter, .n3-search .input, .n3-search .input input {
+.n3-sidebar, .n3-tree ul.fancytree-container, .n3-filter, .n3-search .input {
 	background-color: #efefef;
 }
 
@@ -208,8 +208,38 @@ body {
 	display: none;
 	position: absolute; 
 	right: 0;
+	background: transparent;
 }
 
 .n3-tree .n3-mouseover .ui.compact.icon.button {
 	display: inline-block;
+}
+
+.n3-tree .ui.compact.icon.button,
+.n3-tree .fancytree-checkbox,
+.n3-tree .fancytree-node {
+	z-index: 20;
+}
+
+.n3-node-background {
+	display: none;
+	position: absolute;
+	left: 0;
+	right: 0;
+	background: rgba(104, 104, 104, 0.1);
+	margin-left: 0;
+	margin-right: 0;
+	height: 21px;
+	z-index: 1;
+}
+.n3-tree .n3-mouseover .n3-node-background, .n3-tree .fancytree-active .n3-node-background {
+	display: inline;
+}
+
+.n3-tree .fancytree-plain span.fancytree-active span.fancytree-title, 
+.n3-tree .fancytree-plain span.fancytree-selected span.fancytree-title,
+.n3-tree .fancytree-plain.fancytree-container.fancytree-treefocus span.fancytree-active span.fancytree-title,
+.n3-tree .fancytree-plain.fancytree-container.fancytree-treefocus span.fancytree-selected span.fancytree-title {
+    background-color: transparent;
+    border-color: transparent;
 }

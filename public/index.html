@@ -3,13 +3,14 @@
 
 <head>
 	<meta charset="utf-8">
-	<title>TaskLocally</title>
+	<title>[N3]Note</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <link href="3rd-party-libs/Semantic-UI-CSS-master/semantic.min.css" rel="stylesheet" type="text/css">
 <link href="3rd-party-libs/flex-splitter-directive/styles.min.css" rel="stylesheet">
 <link href="3rd-party-libs/fancytree-2.38.1/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css" rel="stylesheet">
 <link href="n3/n3.css" rel="stylesheet">
 
 <body data-owner="node" data-app class="n3 n3-main n3-no-nodes">
@@ -104,9 +105,12 @@
 
 					<div class="n3-note-title-row" style="padding: 0 10px;">
 						<div>
-							<div class="ui checkbox" style="display: none; " data-done>
-								<input type="checkbox" name="done">
-								<label></label>
+							<div class="pretty p-round p-fill p-icon" style="font-size: 30px; margin: 22px 10px 10px 10px; " data-done>
+								<input type="checkbox" name="done" />
+								<div class="state p-success-o">
+									<i class="icon check"></i>
+									<label></label>
+								</div>
 							</div>
 						</div>
 						<div class="n3-note-title-input">
@@ -129,9 +133,9 @@
 					</div>
 					<div style="padding: 0 10px; margin-bottom: 10px;">
 
-						<div class="ui checkbox" style="margin-right: 10px;">
-							<input type="checkbox" data-is-task>
-							<label>Task</label>
+						<div class="ui buttons mini">
+							<button class="ui button" data-type="note">Note</button>
+							<button class="ui button" data-type="task">Task</button>
 						</div>
 						
 						<div class="ui dropdown inline" data-priority style="margin-right: 10px;">
@@ -141,14 +145,35 @@
 							<div class="menu">
 							</div>
 						</div>
+
 						
-						<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
+
+						  <div class="ui search" data-sarch-tag style="display: inline-block; ">
+							<div class="ui transparent left icon input">
+							  <input class="prompt" type="text" placeholder="Enter tag">
+							  <i class="tags icon"></i>
+							</div>
+							<div class="results"></div>
+						  </div>
+						
+						
+						<!--<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
 							<input name="tags" type="hidden">
 							<i class="dropdown icon"></i>
 							<div class="default text">Add tag</div>
 							<div class="menu">
 							</div>
-						</div>						
+						</div>-->
+						
+						<div class="ui accordion">
+							<div class="title" data-backlinks-title>
+							  <i class="dropdown icon"></i>
+							  Backlinks <a class="ui mini label" data-backlinks-count></a>
+							</div>
+							<div class="content" data-backlinks-content>
+							  <p>A dog is a type of domesticated animal. Known for its loyalty and faithfulness, it can be found as a welcome guest in many households across the world.</p>
+							</div>
+						</div>
 						
 					</div>
 					<div class="n3-node-desciption" name="description" contenteditable="true"></div>
@@ -193,7 +218,7 @@
 			<div class="content">Delete note and all subnotes!
 			</div>
 			<div class="actions">
-				<button data-action="close-dialog" class="ui cancel button">Cancel</button>
+				<button data-action="close-dialog" class="ui positive cancel button">Cancel</button>
 				<button data-action="delete-node-confirm" class="ui approve button">Delete it all forever</button>
 			</div>
 		</div>
