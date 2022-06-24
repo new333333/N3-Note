@@ -169,7 +169,7 @@ $(function() {
 			window.n3.tagInput.search("query");
 
 
-			save note
+			// XXX save note
 			return false;
 		},	
 		showNoResults: false,
@@ -201,7 +201,7 @@ $(function() {
 						noteKey
 					]
 				});
-				save note
+				// xxx save note
 			}
 		}
 	});
