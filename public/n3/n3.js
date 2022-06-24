@@ -804,7 +804,7 @@ window.n3.node.add = function() {
 	}
 
 	let newNodeData = window.n3.node.getNewNodeData();
-	let newNode = node.addNode(newNodeData, "child");
+	let newNode = node.addNode(newNodeData, "firstChild");
 
 	newNode.setActive();
 	window.n3.storeService.addNote(newNode).then(function() { });
