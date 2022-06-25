@@ -35,7 +35,7 @@
 							<i class="search icon"></i>
 							<input type="text" placeholder="Search...">
 						</div>
-						<div class="scrolling menu">
+						<div class="scrolling menu" data-menu>
 							<div class="header">
 								<i class="tags icon"></i>
 								Filter by type
@@ -133,14 +133,22 @@
 					</div>
 					<div style="padding: 0 10px; margin-bottom: 10px;">
 
+						<div class="ui search" data-sarch-tag style="display: inline-block; ">
+							<div class="ui transparent left icon input">
+							<input class="prompt" type="text" placeholder="Add a tag">
+							<i class="tags icon"></i>
+							</div>
+							<div class="results"></div>
+						</div>
+
 						<div class="ui secondary segment">
 
-							<div class="ui buttons mini">
+							<div class="ui buttons mini" style="margin-right: 15px; ">
 								<button class="ui button" data-type="note" data-tooltip="Change to Note" data-position="right center">Note</button>
 								<button class="ui button" data-type="task" data-tooltip="Change to Task">Task</button>
 							</div>
 							
-							<div class="ui dropdown inline" data-priority style="margin-right: 10px;" data-tooltip="Set Priority">
+							<div class="ui dropdown inline" data-priority style="margin-right: 10px;" data-tooltip="Set Priority" style="margin-right: 15px; ">
 								<input type="hidden" name="priority">
 								<span class="text">Priority</span>
 								<i class="dropdown icon"></i>
@@ -148,24 +156,6 @@
 								</div>
 							</div>
 
-							
-
-							<div class="ui search" data-sarch-tag style="display: inline-block; ">
-								<div class="ui transparent left icon input">
-								<input class="prompt" type="text" placeholder="Add a tag">
-								<i class="tags icon"></i>
-								</div>
-								<div class="results"></div>
-							</div>
-							
-							
-							<!--<div class="ui fluid multiple search selection dropdown" data-tags style="margin-bottom: 10px;">
-								<input name="tags" type="hidden">
-								<i class="dropdown icon"></i>
-								<div class="default text">Add tag</div>
-								<div class="menu">
-								</div>
-							</div>-->
 							
 							<div class="ui accordion">
 								<div class="title" data-backlinks-title>
@@ -177,7 +167,9 @@
 							</div>
 						</div>
 					</div>
-					<div class="n3-node-desciption" name="description" contenteditable="true"></div>
+					<div style="padding: 0 10px;">
+						<div class="n3-node-desciption" name="description" contenteditable="true"></div>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -161,32 +161,56 @@ $(function() {
 	window.n3.tagInput = $("[data-sarch-tag]").search({
 		minCharacters: 0,
 		onSelect: function(result, response) {
-			window.n3.tagInput.before(window.n3.getTagHTML(result.title));
-
+			let newTag = result.title;
 
 			// need these three lines to remove value and close search results
 			window.n3.tagInput.search("set value", "");
 			window.n3.tagInput.search("query");
 
 
-			// XXX save note
+			let noteKey = undefined;
+			let $ticketDataOwner = this.closest("[data-owner='node']");
+			if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
+				noteKey = $ticketDataOwner.dataset.notekey;
+			}
+
+			let node = window.n3.getNoteByKey(noteKey);
+			node.data.tags = node.data.tags || [];
+
+			if (!node.data.tags.includes(newTag)) {
+				window.n3.tagInput.before(window.n3.getTagHTML(newTag));
+				node.data.tags.push(newTag);
+				window.n3.storeService.modifyNote(node, ["tags"]).then(function() { });
+			}
 			return false;
 		},	
 		showNoResults: false,
 		cache: false,
 		apiSettings: {
-			responseAsync: function(settings, callback) {			
+			responseAsync: function(settings, callback) {	
+				let noteKey = undefined;
+				let $ticketDataOwner = this.closest("[data-owner='node']");
+				if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
+					noteKey = $ticketDataOwner.dataset.notekey;
+				}
+
+				let node = window.n3.getNoteByKey(noteKey);
+				node.data.tags = node.data.tags || [];
+				let filterettags = window.n3.tags.filter(function(tag) {
+					return !node.data.tags.includes(tag.title);
+				});
+				
 				callback({
 					success: true,
-					results: window.n3.tags
+					results: filterettags
 				});
 			}
 		}
 	}).on('keypress',function(e) {
 		if(e.which == 13) {
-			let value = window.n3.tagInput.search("get value").trim();
-			if (value.length > 0) {
-				window.n3.tagInput.before(window.n3.getTagHTML(value));
+			let newTag = window.n3.tagInput.search("get value").trim();
+			if (newTag.length > 0) {
+				
 				window.n3.tagInput.search("set value", "");
 
 				let noteKey = undefined;
@@ -194,22 +218,41 @@ $(function() {
 				if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
 					noteKey = $ticketDataOwner.dataset.notekey;
 				}
-				
-				window.n3.tags.push({
-					title: value,
-					notes: [
-						noteKey
-					]
-				});
-				// xxx save note
+
+				let node = window.n3.getNoteByKey(noteKey);
+				node.data.tags = node.data.tags || [];
+				if (!node.data.tags.includes(newTag)) {
+					window.n3.tagInput.before(window.n3.getTagHTML(newTag));
+
+					window.n3.tags.push({
+						title: newTag
+					});
+
+					
+					node.data.tags = node.data.tags || [];
+					node.data.tags.push(newTag);
+					window.n3.storeService.modifyNote(node, ["tags"]).then(function() { });
+				}
 			}
 		}
 	});
 
 	$(document).on("click", "[data-delete-tag]", function(event) {
-		console.log("delete tag", this.dataset.tag);
-		$("[data-tag='" + this.dataset.tag + "']").remove();
-		// don't need to remove tag from list
+		let deleteTag = this.dataset.tag;
+		$("[data-tag='" + deleteTag + "']").remove();
+		let noteKey = undefined;
+		let $ticketDataOwner = $("[data-owner='node']")[0];
+		if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
+			noteKey = $ticketDataOwner.dataset.notekey;
+		}
+
+		let node = window.n3.getNoteByKey(noteKey);
+		node.data.tags = node.data.tags || [];
+		let tagIndex = node.data.tags.findIndex(function(tag) {
+			return tag === deleteTag
+		});
+		node.data.tags.splice(tagIndex, 1);
+		window.n3.storeService.modifyNote(node, ["tags"]).then(function() { });
 	});
 
 	$(document).on("mouseover", "span.fancytree-node", function(event) {
@@ -373,14 +416,21 @@ $(function() {
 	
 
 
-	let filterDropDown = $("[data-filter]").dropdown();
-	// TODO: tags
-	// filterDropDown.dropdown('change values', [{name: "Aaaa", value: "aaaa", selected: false}])
+	let filterDropDown = $("[data-filter]").dropdown({
+		onShow: function(a, b, c) {
+			console.log("filterDropDown", filterDropDown, this);
+			let $list = $("[data-menu]", this);
+			$("[data-filter-tag]", $list).remove();
+			window.n3.tags.forEach(function(tag) {
+				$list.append(`<div class='item' data-filter-tag data-value='tag-${tag.title}'>
+				<div class="ui green empty circular label"></div>${tag.title}</div>`);
+			});
+		}
+	});
+
 	filterDropDown.dropdown("setting", "onChange", function(value, text, $choice) {
 		$("[data-filter]").dropdown("hide");
-
 		window.n3.filterTree();
-
 	});
 
 
@@ -393,8 +443,8 @@ $(function() {
 
 
 window.n3.getTagHTML = function(tag) {
-	let newTagTemplate = `<a class="ui blue tag label" data-tag="${tag}">${tag}</a>		
-	<button class="transparent mini ui icon button" data-tooltip="Remove tag '${tag}'" data-tag="${tag}" data-delete-tag="${tag}">
+	let newTagTemplate = `<a class="ui tiny tag label" data-tag="${tag}">${tag}</a>		
+	<button class="ui icon mini button n3-tag-remove" data-tooltip="Remove tag '${tag}'" data-tag="${tag}" data-delete-tag="${tag}" style="background: transparent; ">
 		<i class="icon trash"></i>
 	</button>`;
 
@@ -429,6 +479,13 @@ window.n3.filterTree = function() {
 				return searchResult.id;
 			});
 		}
+
+		let filterByTags = filters.reduce(function(tags, filter) {
+			if (filter.indexOf("tag-") == 0) {
+				tags.push(filter.substring(4));
+			}
+			return tags;
+		}, []);
 
 		$.ui.fancytree.getTree("[data-tree]").filterNodes(function(node) {			
 			let show = true;
@@ -475,6 +532,15 @@ window.n3.filterTree = function() {
 
 			if (searchText.trim().length > 0) {
 				show = show && foundNoteKeys.includes(node.key);
+			}
+
+			if (filterByTags.length > 0) {
+				node.data.tags = node.data.tags || {};
+				let tagMatch = node.data.tags.some(function(tag) {
+					return filterByTags.includes(tag);
+				});
+
+				show = show && tagMatch;
 			}
 
 			return show;
@@ -659,11 +725,24 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 								}
 
 								for (let i = 0; i < tree.length; i++) {
-									tree[i].checkbox = tree[i].data !== undefined && tree[i].data.type !== undefined && tree[i].data.type === "task";
-									tree[i].selected = tree[i].data !== undefined && tree[i].data.done !== undefined && tree[i].data.done;
+									tree[i].data = tree[i].data || {};
+									tree[i].checkbox = tree[i].data.type !== undefined && tree[i].data.type === "task";
+									tree[i].selected = tree[i].data.done !== undefined && tree[i].data.done;
 									if (tree[i].children) {
 										tree[i].children = setCheckBoxFromTyp(tree[i].children);
 									}
+									tree[i].data.tags = tree[i].data.tags || [];
+									tree[i].data.tags.forEach(function(tag) {
+										let indexExistingTag = window.n3.tags.findIndex(function(existingTag) {
+											return existingTag.title === tag;
+										});
+							
+										if (indexExistingTag == -1) {
+											window.n3.tags.push({
+												title: tag
+											});
+										}
+									});
 								}
 
 								return tree;
@@ -925,31 +1004,23 @@ window.n3.node.activateNode = function(node) {
 		$("[data-type='" + (node.data.type === "task" ? "note" : "task") + "']").removeClass("primary");
 
 		//////////////////////////////
-/*
-		let tagsDropDownMenu = window.n3.task.tagsList.map(function(tag) {
-			return {
-				name: tag,
-				value: tag,
-		        selected: ("," + node.data.tags + ",").indexOf(tag) > -1
-			}
-		});
-		
-		let tagsDropDownEl = $("[data-tags], form");
-		let tagsDropDown = tagsDropDownEl.dropdown({
-			allowAdditions: true,
-			values: tagsDropDownMenu
-		});
-		tagsDropDown.dropdown("clear");
-		if (node.data.tags !== undefined) {
-			node.data.tags.split(",").forEach(function(tag) {
-				tagsDropDown.dropdown("set selected", tag);
+
+		$("[data-tag]").remove();
+		node.data.tags = node.data.tags || [];
+		node.data.tags.forEach(function(tag) {
+			
+			let indexExistingTag = window.n3.tags.findIndex(function(existingTag) {
+				return existingTag.title === tag;
 			});
-		}
-		tagsDropDown.dropdown("setting", "onChange", function(value, text, $choice) {
-			node.data.tags = value;
-			window.n3.storeService.modifyNote(node, ["tags"]).then(function() {});
+
+			if (indexExistingTag == -1) {
+				window.n3.tags.push({
+					title: tag
+				});
+			}
+
+			window.n3.tagInput.before(window.n3.getTagHTML(tag));
 		});
-*/
 	});
 }
 

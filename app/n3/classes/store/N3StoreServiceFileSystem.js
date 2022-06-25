@@ -187,6 +187,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 					done: note.data.done,
 					priority: note.data.priority,
 					type: note.data.type,
+					tags: note.data.tags || [],
 					timeStamp: JSJoda.Instant.now().toString()
 				}, null, 2));
 			}).catch(function(error) {
@@ -196,6 +197,7 @@ class N3StoreServiceFileSystem extends N3StoreServiceAbstract {
 					done: note.data.done,
 					priority: note.data.priority,
 					type: note.data.type,
+					tags: note.data.tags || [],
 					timeStamp: JSJoda.Instant.now().toString()
 				}, null, 2));
 			});
