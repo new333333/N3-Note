@@ -1329,7 +1329,7 @@ window.n3.initFancyTree = function(rootNodes) {
 						$("<span class='n3-childcounter'" + (tasksAmountOnNode > 0 ? " style='background-color: #2185d0; ' " : "") + "/>").text(tasksAmount)
 					);*/
 					$(data.node.span).append(
-						`<div class="ui label n3-childcounter">${tasksAmountOnNode}</div>`
+						`<div class="n3-childcounter ${ tasksAmountOnNode > 0 ? "n3-active" : "" }"> ${tasksAmountOnNode} </div>`
 					);
 				//}	
 

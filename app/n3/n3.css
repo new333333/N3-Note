@@ -198,13 +198,24 @@ body {
 .n3-tree .n3-node-add {
 	display: none;
 	position: absolute; 
-	right: 23px;
+	right: 19px;
 	background: #efefef;
 }
 
 .n3-tree .n3-childcounter {
 	position: absolute;
-    right: -3px;
+    right: 4px;
+    display: inline-block;
+    background-color: #efefef;
+    padding: 0;
+    height: 22px;
+	color: #efefef;
+	text-align: center;
+    width: 23px;
+}
+
+.n3-tree .n3-childcounter.n3-active {
+	color: #0E6EB8;
 }
 
 .n3-tree .n3-mouseover .n3-node-add {
@@ -246,27 +257,27 @@ body {
 
 .n3-tree .n3-task-priority {
 	position: absolute;
-    left: 1px;
-    border-left-width: 4px;
-	border-left-style: solid;
+    right: 0;
+    border-right-width: 4px;
+	border-right-style: solid;
     z-index: 20;
     display: inline-block;
-    width: 5px;
+    width: 4px;
     height: 20px;
 }
 
 .n3-tree .n3-task-priority-0 {
-	border-left-color: transparent;
+	border-right-color: #efefef;
 }
 
 .n3-tree .n3-task-priority-1 {
-	border-left-color: mediumblue;
+	border-right-color: mediumblue;
 }
 
 .n3-tree .n3-task-priority-2 {
-	border-left-color: coral;
+	border-right-color: coral;
 }
 
 .n3-tree .n3-task-priority-3 {
-	border-left-color: red;
+	border-right-color: red;
 }
