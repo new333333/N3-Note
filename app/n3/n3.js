@@ -418,7 +418,6 @@ $(function() {
 
 	let filterDropDown = $("[data-filter]").dropdown({
 		onShow: function(a, b, c) {
-			console.log("filterDropDown", filterDropDown, this);
 			let $list = $("[data-menu]", this);
 			$("[data-filter-tag]", $list).remove();
 			window.n3.tags.forEach(function(tag) {
