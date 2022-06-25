@@ -100,7 +100,12 @@
 			<div role="separator"></div>
 			<div class="n3-content">
 				<div data-tab="note" data-noteeditor class="ui tab segment active" style="padding: 0;">
-					<div data-breadcrumbs style="padding: 10px; font-size: 0.9rem;">
+
+					<div class="n3-note-title-row" style="padding: 10px; ">
+						<div data-breadcrumbs style="font-size: 0.9rem; text-align: left; width: 100%; "></div>
+						<button class="ui transparent compact mini icon button" data-action="open-modal" data-target="n3-delete-note-modal">
+							<i class="trash icon"></i>
+						</button>
 					</div>
 
 					<div class="n3-note-title-row" style="padding: 0 10px;">
@@ -118,51 +123,43 @@
 								<input name="title" type="text">
 							</div>
 						</div>
-						<div>
-							<div class="ui dropdown" data-node-menu>
-								<button class="circular ui icon button">
-									<i class="icon ellipsis horizontal"></i>
-								</button>
-								<div class="menu">
-									<div class="item" data-action="open-modal" data-target="n3-delete-note-modal">
-										<i class="trash icon"></i>Delete note
+					</div>
+					<div class="ui segments" style="margin: 0 10px; ">
+						<div class="ui secondary segment">
+							<div class="ui search" data-sarch-tag style="display: inline-block; ">
+								<div class="ui transparent left icon input">
+								<input class="prompt" type="text" placeholder="Add a tag">
+								<i class="tags icon"></i>
+								</div>
+								<div class="results"></div>
+							</div>
+						</div>
+
+						<div class="ui horizontal segments">
+							<div class="ui segment" style="min-width: 350px; max-width: 350px;">
+
+								<div class="ui buttons mini" style="margin-right: 15px; ">
+									<button class="ui button" data-type="note" data-tooltip="Change to Note" data-position="right center">Note</button>
+									<button class="ui button" data-type="task" data-tooltip="Change to Task">Task</button>
+								</div>
+								
+								<div class="ui dropdown inline" data-priority style="margin-right: 10px;" data-tooltip="Set Priority" style="margin-right: 15px; ">
+									<input type="hidden" name="priority">
+									<span class="text">Priority</span>
+									<i class="dropdown icon"></i>
+									<div class="menu">
 									</div>
 								</div>
-							</div>
-						</div>
-					</div>
-					<div style="padding: 0 10px; margin-bottom: 10px;">
 
-						<div class="ui search" data-sarch-tag style="display: inline-block; ">
-							<div class="ui transparent left icon input">
-							<input class="prompt" type="text" placeholder="Add a tag">
-							<i class="tags icon"></i>
 							</div>
-							<div class="results"></div>
-						</div>
-
-						<div class="ui secondary segment">
-
-							<div class="ui buttons mini" style="margin-right: 15px; ">
-								<button class="ui button" data-type="note" data-tooltip="Change to Note" data-position="right center">Note</button>
-								<button class="ui button" data-type="task" data-tooltip="Change to Task">Task</button>
-							</div>
-							
-							<div class="ui dropdown inline" data-priority style="margin-right: 10px;" data-tooltip="Set Priority" style="margin-right: 15px; ">
-								<input type="hidden" name="priority">
-								<span class="text">Priority</span>
-								<i class="dropdown icon"></i>
-								<div class="menu">
-								</div>
-							</div>
-
-							
-							<div class="ui accordion">
-								<div class="title" data-backlinks-title>
-								<i class="dropdown icon"></i>
-								<span data-tooltip="Show Notes linking to this Note" data-position="right center">Backlinks <a class="ui mini label" data-backlinks-count></a></span>
-								</div>
-								<div class="content" data-backlinks-content>
+							<div class="ui segment">
+								<div class="ui accordion">
+									<div class="title" data-backlinks-title>
+									<i class="dropdown icon"></i>
+									<span data-tooltip="Show Notes linking to this Note" data-position="right center">Backlinks <a class="ui mini label" data-backlinks-count></a></span>
+									</div>
+									<div class="content" data-backlinks-content>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -212,7 +209,7 @@
 			</div>
 			<div class="actions">
 				<button data-action="close-dialog" class="ui positive cancel button">Cancel</button>
-				<button data-action="delete-node-confirm" class="ui approve button">Delete it all forever</button>
+				<button data-action="delete-node-confirm" class="ui approve button">Delete</button>
 			</div>
 		</div>
 

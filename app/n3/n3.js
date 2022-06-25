@@ -156,7 +156,9 @@ $(function() {
 	window.n3.action.handlers["open-modal"] = window.n3.ui.openModal;
 	window.n3.action.handlers["close-dialog"] = window.n3.action.closeDialog;
 
-
+	window.n3.getActiveNode = function() {
+		return $.ui.fancytree.getTree("[data-tree]").getActiveNode();
+	}
 
 	window.n3.tagInput = $("[data-sarch-tag]").search({
 		minCharacters: 0,
@@ -167,14 +169,7 @@ $(function() {
 			window.n3.tagInput.search("set value", "");
 			window.n3.tagInput.search("query");
 
-
-			let noteKey = undefined;
-			let $ticketDataOwner = this.closest("[data-owner='node']");
-			if ($ticketDataOwner && $ticketDataOwner.dataset.notekey) {
-				noteKey = $ticketDataOwner.dataset.notekey;
-			}
-
-			let node = window.n3.getNoteByKey(noteKey);
+			let node = window.n3.getActiveNode();
 			node.data.tags = node.data.tags || [];
 
 			if (!node.data.tags.includes(newTag)) {
@@ -443,7 +438,7 @@ $(function() {
 
 window.n3.getTagHTML = function(tag) {
 	let newTagTemplate = `<a class="ui tiny tag label" data-tag="${tag}">${tag}</a>		
-	<button class="ui icon mini button n3-tag-remove" data-tooltip="Remove tag '${tag}'" data-tag="${tag}" data-delete-tag="${tag}" style="background: transparent; ">
+	<button class="ui transparent icon mini button n3-tag-remove" data-tooltip="Remove tag '${tag}'" data-tag="${tag}" data-delete-tag="${tag}">
 		<i class="icon trash"></i>
 	</button>`;
 
@@ -747,9 +742,6 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 								return tree;
 							}
 							
-
-							// TODO init UI method?
-							$("[data-node-menu]").dropdown();
 								
 							let form = $("[data-noteeditor]");
 							window.n3.node.getNodeHTMLEditor(form).then(function(data) {
@@ -910,16 +902,19 @@ window.n3.node.activateNode = function(node) {
 
 		let form = $("[data-noteeditor]");
 
-
+		let rootNodeKey = undefined;
 		let noteIt = node;
 		let breadcrumbs = "";
 		let sep = "";
 		while (noteIt && noteIt.key !== "root_1") {
 			breadcrumbs = "<a href='#" + noteIt.key +"' data-link-note='" + noteIt.key + "'>" + noteIt.title + "</a>" + sep + breadcrumbs;
 			sep = " / ";
+			rootNodeKey = noteIt.key;
 			noteIt = noteIt.parent;
-		}	
-		$("[data-breadcrumbs]").html(breadcrumbs);
+		}
+		$("[data-breadcrumbs]").html(`<button class="ui transparent mini icon button" data-link-note='${rootNodeKey}'>
+											<i class="blue home icon"></i>
+										</button>` + breadcrumbs);
 		
 
 		$("[name='title']", form).val(node.title);
@@ -1318,12 +1313,6 @@ window.n3.initFancyTree = function(rootNodes) {
 				});
 			},
 			enhanceTitle: function(event, data) {
-				/*
-				$(data.node.span).prepend(
-					$("<span class='n3-node-background'></span>")
-				);
-				*/
-
 				let tasksAmountOnNode = 0;
 				let tasksAmount = 0;
 				data.node.visit(function(subNode) {
@@ -1335,26 +1324,21 @@ window.n3.initFancyTree = function(rootNodes) {
 					}
 				});
 
-				if (tasksAmount > 0) {
-					$("span.fancytree-title", data.node.span).prepend(
-						$("<span class='fancytree-childcounter'" + (tasksAmountOnNode > 0 ? " style='background-color: #2185d0; ' " : "") + "/>").text(tasksAmount)
+				//if (tasksAmount > 0) {
+					/*$(data.node.span).append(
+						$("<span class='n3-childcounter'" + (tasksAmountOnNode > 0 ? " style='background-color: #2185d0; ' " : "") + "/>").text(tasksAmount)
+					);*/
+					$(data.node.span).append(
+						`<div class="ui label n3-childcounter">${tasksAmountOnNode}</div>`
 					);
-				}
+				//}	
 
-				let priorityColors = {
-					"0": "grey",
-					"1": "mediumblue",
-					"2": "coral",
-					"3": "red"
-				}
-
-				if (data.node.data.type === "task") {
-					$("span.fancytree-title", data.node.span).css({color: priorityColors[data.node.data.priority]});
-				} else {
-					$("span.fancytree-title", data.node.span).css({color: ""});
-				}
-
-				$(data.node.span).append("<button data-node-add data-node-key='" + data.node.key + "' class='ui compact icon button mini'><i class='plus square outline icon'></i></button>");
+				$(data.node.span).append(
+					`<span class='n3-task-priority n3-task-priority-${data.node.data.priority}'></span>
+					<button data-node-add data-node-key='${data.node.key}' class='ui compact n3-node-add icon button mini'>
+						<i class='plus square outline icon'></i>
+					</button>`
+				);
 
 			},
 			dnd5: {

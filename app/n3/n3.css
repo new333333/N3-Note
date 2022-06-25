@@ -55,7 +55,7 @@ body {
 	border: 0;
 	font-size: 3rem;
     line-height: 3rem;
-	padding-left: 0;
+	padding: 0;
 }
 
 .n3 .ui.menu .ui.button {
@@ -152,15 +152,6 @@ body {
     border: 0;
 }
 
-.fancytree-ext-childcounter span.fancytree-childcounter, .fancytree-ext-filter span.fancytree-childcounter {
-    min-width: 16px;
-    height: 16px;
-	position: relative;
-    top: -2px;
-    right: 2px;
-	display: inline-block;
-}
-
 .task-list .task {
 	background-color: #f8f8f8;
 	padding: 9px !important;
@@ -204,14 +195,19 @@ body {
 	background-color: #efefef;
 }
 
-.n3-tree .ui.compact.icon.button {
+.n3-tree .n3-node-add {
 	display: none;
 	position: absolute; 
-	right: 0;
-	background: transparent;
+	right: 23px;
+	background: #efefef;
 }
 
-.n3-tree .n3-mouseover .ui.compact.icon.button {
+.n3-tree .n3-childcounter {
+	position: absolute;
+    right: -3px;
+}
+
+.n3-tree .n3-mouseover .n3-node-add {
 	display: inline-block;
 }
 
@@ -235,11 +231,42 @@ body {
 .n3-tree .n3-mouseover .n3-node-background, .n3-tree .fancytree-active .n3-node-background {
 	display: inline;
 }
-
+/*
 .n3-tree .fancytree-plain span.fancytree-active span.fancytree-title, 
 .n3-tree .fancytree-plain span.fancytree-selected span.fancytree-title,
 .n3-tree .fancytree-plain.fancytree-container.fancytree-treefocus span.fancytree-active span.fancytree-title,
 .n3-tree .fancytree-plain.fancytree-container.fancytree-treefocus span.fancytree-selected span.fancytree-title {
     background-color: transparent;
     border-color: transparent;
+}
+*/
+.ui.transparent {
+	background: transparent;
+}
+
+.n3-tree .n3-task-priority {
+	position: absolute;
+    left: 1px;
+    border-left-width: 4px;
+	border-left-style: solid;
+    z-index: 20;
+    display: inline-block;
+    width: 5px;
+    height: 20px;
+}
+
+.n3-tree .n3-task-priority-0 {
+	border-left-color: transparent;
+}
+
+.n3-tree .n3-task-priority-1 {
+	border-left-color: mediumblue;
+}
+
+.n3-tree .n3-task-priority-2 {
+	border-left-color: coral;
+}
+
+.n3-tree .n3-task-priority-3 {
+	border-left-color: red;
 }
