@@ -12,8 +12,7 @@ TODO
  - custom domain
  - fix add screenshot/ drop file
  - file upload implmentieren - erst Drag & Drop in tree
- - list view with sorting
- - tags umimplementieren + filter by tag  
+ - list view with sorting 
  - bilder gallery/slides
  - search index trash - zweiten index?
  - routing https://developer.chrome.com/docs/workbox/modules/workbox-routing/ ?
@@ -25,7 +24,6 @@ TODO
  - google drive storage
  - plan 3 tasks for today - choose from list (https://www.youtube.com/watch?v=oJTiq-Pqp9k)
  - file strucure ändern - bei Google
- - ctrl-s to save - nach react
  - Suche opcje: szukaj historie, szukaj skasowane
  - davon PWA machen
  - Tags colors
@@ -35,9 +33,7 @@ TODO
  - Ocr with tesseractjs
  - export als ZIP (semantic UI first)
  - choose folder list (semantic UI first)
- - github link und freigabe
  - list assets + info if in use and where
- - full filter options (filet completed/archived als beide oder nur eine)
  - close all nodes/expande all nodes utton fpr tree
  - consolidate store events - gleiche events mit gleich wparameter müssen nicht wiederhol1t werden! - veielleicht brauche ich merhere asyncqueues? 
  - daten strzuktur version einbauen --! - bei start konvertierung zum neue struktur!
@@ -45,7 +41,6 @@ TODO
 	  --> nowy plik conf.json
  - timer - worjlking on Task/Node - wird in Journal siechtbar - mit kommentar option - wenn man nur auf kjunde starten und keine unteraufagbe angibt ->erst log 
  - https://yuku.takahashi.coffee/textcomplete/
- - tree- icon in tree
  - files
  - drag and drop files in tinymce
  - performance tests
@@ -142,7 +137,27 @@ window.n3.localFolder = {};
 window.n3.storeService = false;
 
 $(function() {
-	
+/* Test sql.js
+	initSqlJs().then(function(SQL){
+		//Create the database
+		const db = new SQL.Database();
+		// Run a query without reading the results
+		db.run("CREATE TABLE test (col1, col2);");
+		// Insert two rows: (1,111) and (2,222)
+		db.run("INSERT INTO test VALUES (?,?), (?,?)", [1,111,2,222]);
+  
+		// Prepare a statement
+		const stmt = db.prepare("SELECT * FROM test WHERE col1 BETWEEN $start AND $end");
+		stmt.getAsObject({$start:1, $end:1}); // {col1:1, col2:111}
+  
+		// Bind new values
+		stmt.bind({$start:1, $end:2});
+		while(stmt.step()) { //
+		  const row = stmt.getAsObject();
+		  console.log('Here is a row: ' + JSON.stringify(row));
+		}
+	  });
+*/	
 	window.n3.localFolder.init();
 
 
@@ -699,6 +714,7 @@ window.n3.localFolder.queryVerifyPermission = function(dir) {
 			window.n3.localFolder.verifyPermission(dir, true).then(function(granted) {
 				if (granted) {
 					window.n3.storeService = new N3StoreServiceFileSystem(dir);
+					// window.n3.storeService = new N3StoreServiceSQLite(dir);
 
 
 					set("localFolder", dir).then(function() {
@@ -1324,14 +1340,10 @@ window.n3.initFancyTree = function(rootNodes) {
 					}
 				});
 
-				//if (tasksAmount > 0) {
-					/*$(data.node.span).append(
-						$("<span class='n3-childcounter'" + (tasksAmountOnNode > 0 ? " style='background-color: #2185d0; ' " : "") + "/>").text(tasksAmount)
-					);*/
-					$(data.node.span).append(
-						`<div class="n3-childcounter ${ tasksAmountOnNode > 0 ? "n3-active" : "" }"> ${tasksAmountOnNode} </div>`
-					);
-				//}	
+				$(data.node.span).append(
+					`<div class="n3-childcounter ${ tasksAmount > 0 ? "n3-active" : "" }"> ${tasksAmount} </div>`
+				);
+
 
 				$(data.node.span).append(
 					`<span class='n3-task-priority n3-task-priority-${data.node.data.priority}'></span>
