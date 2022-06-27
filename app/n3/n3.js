@@ -1058,7 +1058,7 @@ window.n3.node.getNodeHTMLEditor = function(form) {
 				"autoresize"
 			],
 			toolbar: "undo redo | blocks | " +
-				"bold italic strikethrough  backcolor | alignleft aligncenter " +
+				"bold italic underline strikethrough  backcolor | alignleft aligncenter " +
 				"alignright alignjustify | bullist numlist outdent indent | " +
 				"removeformat | code",
 			powerpaste_word_import: "clean",
